@@ -70,4 +70,8 @@ public class ChessMove {
         return promotionPiece;
     }
 
+    public boolean isValidPosition(int row, int col) {
+        // 8x8 board
+        return (row >= 1 && row <= 8 && col >= 1 && col <= 8);
+    }
 }

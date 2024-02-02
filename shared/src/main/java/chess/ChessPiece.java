@@ -34,6 +34,7 @@ public class ChessPiece {
 
     private final ChessGame.TeamColor pieceColor;
     private final PieceType type;
+    private ChessPosition currentPosition;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor=pieceColor;
@@ -66,6 +67,17 @@ public class ChessPiece {
         return type;
     }
 
+    public void setPosition(int row, int col) {
+        this.currentPosition = new ChessPosition(row, col);
+    }
+
+    /**
+     * @return The current position of the chess piece on the chessboard
+     */
+    public ChessPosition getPosition() {
+        return currentPosition;
+    }
+
     /**
      * Calculates all the positions a chess piece can move to
      * Does not take into account moves that are illegal due to leaving the king in
@@ -74,7 +86,7 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        ArrayList<ChessMove> movesList = new ArrayList<>();
+        Collection<ChessMove> movesList = new ArrayList<>();
 
         // BISHOP moves
         if (type == PieceType.BISHOP) {
@@ -263,7 +275,7 @@ public class ChessPiece {
         }
     }
     
-    private boolean isValidPosition(int row, int col) {
+    public static boolean isValidPosition(int row, int col) {
         // 8x8 board
         return (row >= 1 && row <= 8 && col >= 1 && col <= 8);
     }
