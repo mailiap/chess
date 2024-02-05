@@ -71,17 +71,14 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        if (getBoard() == null) {
-            return null;
-        }
-
         ChessPiece piece = getBoard().getPiece(startPosition);
+        setTeamTurn(piece.getTeamColor());
+        Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), startPosition);
 
         if (piece == null || !piece.getTeamColor().equals(getTeamTurn())) {
             return null;
         }
-
-        return piece.pieceMoves(getBoard(), startPosition);
+        return validMoves;
     }
 
     /**
@@ -101,7 +98,8 @@ public class ChessGame {
             throw new InvalidMoveException("Invalid move: No piece at the starting position or not the current team's turn.");
         }
 
-        Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), move.getStartPosition());
+        ChessPosition start = move.getStartPosition();
+        Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), start);
 
         if (!validMoves.contains(move)) {
             throw new InvalidMoveException("Invalid move: The specified move is not a valid move for the piece.");
@@ -162,10 +160,6 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        if (getBoard() == null) {
-            return false;
-        }
-
         // Find the position of the king for the specified team
         ChessPosition kingPosition = getBoard().findKingPosition(teamColor);
 
@@ -198,24 +192,20 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        if (!isInCheck(teamColor) || !hasValidMoves(teamColor)) {
-            return false;
-        }
-
         // Check if there is any move that can get the king out of check
         for (ChessPiece piece : getColorPieces(teamColor)) {
             for (ChessMove move : piece.pieceMoves(getBoard(), piece.getPosition())) {
                 ChessBoard newBoard = getBoard(); // Implement a method to clone the board
                 newBoard.addPiece(move.getEndPosition(), piece);
-                if (!isInCheck(teamColor)) {
-                    return false;
+                if (isInCheck(teamColor)) {
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
-    private boolean hasValidMoves(TeamColor teamColor) {
+    public boolean hasValidMoves(TeamColor teamColor) {
         for (ChessPiece piece : getColorPieces(teamColor)) {
             if (!piece.pieceMoves(getBoard(), piece.getPosition()).isEmpty()) {
                 return true;
@@ -232,12 +222,26 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        if (isInCheck(teamColor) || hasValidMoves(teamColor)) {
-            return false;
-        }
+        // Check if it's the specified team's turn
+        if (teamColor.equals(getTeamTurn())) {
+            // Iterate through all pieces on the board
+            for (int row = 1; row <= 8; row++) {
+                for (int col = 1; col <= 8; col++) {
+                    ChessPosition currentPosition = new ChessPosition(row, col);
+                    ChessPiece currentPiece = getBoard().getPiece(currentPosition);
 
-        // No valid moves and not in check, it's a stalemate
-        return true;
+                    // Check if the piece belongs to the specified team
+                    if (currentPiece != null && currentPiece.getTeamColor().equals(teamColor)) {
+                        // Check if the piece has any legal moves
+                        if (hasValidMoves(teamColor)) {
+                            return true; // The team has legal moves, not in stalemate
+                        }
+                    }
+                }
+            }
+            return true; // No legal moves for any piece of the specified team, in stalemate
+        }
+        return false; // It's not the specified team's turn
     }
 
     /**

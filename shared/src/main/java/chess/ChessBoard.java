@@ -31,7 +31,14 @@ public class ChessBoard {
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
-        return super.clone();
+        ChessBoard clonedBoard = (ChessBoard) super.clone();
+
+        // Clone the nested array
+        clonedBoard.squares = new ChessPiece[8][8];
+        for (int i = 0; i < 8; i++) {
+            clonedBoard.squares[i] = this.squares[i].clone();
+        }
+        return clonedBoard;
     }
 
     private ChessPiece[][] squares = new ChessPiece[8][8];
