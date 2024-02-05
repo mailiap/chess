@@ -1,8 +1,6 @@
 package chess;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
 
 /**
@@ -27,8 +25,7 @@ public class ChessBoard {
 
     @Override
     public String toString() {
-        return "ChessBoard{" +
-                "squares=" + Arrays.toString(squares) +
+        return "squares=" + Arrays.toString(squares) +
                 '}';
     }
 

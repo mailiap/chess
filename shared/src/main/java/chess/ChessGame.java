@@ -2,6 +2,7 @@ package chess;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 
 /**
  * For a class that can manage a chess game, making moves on a board
@@ -10,6 +11,26 @@ import java.util.Collection;
  * signature of the existing methods.
  */
 public class ChessGame {
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (null == o || this.getClass() != o.getClass()) return false;
+        final ChessGame chessGame=(ChessGame) o;
+        return Objects.equals(this.board, chessGame.board) && this.team == chessGame.team;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.board, this.team);
+    }
+
+    @Override
+    public String toString() {
+        return  "board=" + board +
+                ", team=" + team +
+                '}';
+    }
 
     private ChessBoard board;
     private TeamColor team;
@@ -56,7 +77,7 @@ public class ChessGame {
 
         ChessPiece piece = getBoard().getPiece(startPosition);
 
-        if (piece == null || piece.getTeamColor() != getTeamTurn()) {
+        if (piece == null || !piece.getTeamColor().equals(getTeamTurn())) {
             return null;
         }
 
@@ -107,7 +128,7 @@ public class ChessGame {
         }
 
         // Retrieve the piece at the starting position
-        ChessPiece piece =getBoard().getPiece(start);
+        ChessPiece piece = getBoard().getPiece(start);
 
         // Check if there is a piece at the starting position
         if (piece == null) {
@@ -121,7 +142,7 @@ public class ChessGame {
 
         // Check if the target position is occupied by a piece of the same team
         ChessPiece targetPiece = getBoard().getPiece(end);
-        if (targetPiece != null && targetPiece.getTeamColor() == piece.getTeamColor()) {
+        if (targetPiece != null && targetPiece.getPieceType().equals(piece.getTeamColor())) {
             throw new InvalidMoveException("Invalid move: Target position is occupied by a piece of the same team.");
         }
 

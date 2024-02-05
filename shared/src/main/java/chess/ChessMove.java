@@ -24,8 +24,7 @@ public class ChessMove {
 
     @Override
     public String toString() {
-        return "ChessMove{" +
-                "startPosition=" + startPosition +
+        return "startPosition=" + startPosition +
                 ", endPosition=" + endPosition +
                 ", promotionPiece=" + promotionPiece +
                 '}';
@@ -68,10 +67,5 @@ public class ChessMove {
      */
     public ChessPiece.PieceType getPromotionPiece() {
         return promotionPiece;
-    }
-
-    public boolean isValidPosition(int row, int col) {
-        // 8x8 board
-        return (row >= 1 && row <= 8 && col >= 1 && col <= 8);
     }
 }
