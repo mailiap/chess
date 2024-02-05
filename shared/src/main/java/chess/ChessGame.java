@@ -73,12 +73,18 @@ public class ChessGame {
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         ChessPiece piece = getBoard().getPiece(startPosition);
         setTeamTurn(piece.getTeamColor());
-        Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), startPosition);
 
-        if (piece == null || !piece.getTeamColor().equals(getTeamTurn())) {
+        // If there is no piece at the specified position, return null
+        if (piece == null) {
             return null;
         }
-        return validMoves;
+
+        Collection<ChessMove> legalMoves = new ArrayList<>();
+
+        if (isInCheck(getTeamTurn())) {
+            legalMoves = piece.pieceMoves(getBoard(), startPosition);
+        }
+        return legalMoves;
     }
 
     /**
@@ -205,15 +211,6 @@ public class ChessGame {
         return false;
     }
 
-    public boolean hasValidMoves(TeamColor teamColor) {
-        for (ChessPiece piece : getColorPieces(teamColor)) {
-            if (!piece.pieceMoves(getBoard(), piece.getPosition()).isEmpty()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Determines if the given team is in stalemate, which here is defined as having
      * no valid moves
@@ -242,6 +239,15 @@ public class ChessGame {
             return true; // No legal moves for any piece of the specified team, in stalemate
         }
         return false; // It's not the specified team's turn
+    }
+
+    public boolean hasValidMoves(TeamColor teamColor) {
+        for (ChessPiece piece : getColorPieces(teamColor)) {
+            if (!piece.pieceMoves(getBoard(), piece.getPosition()).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
