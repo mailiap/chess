@@ -153,7 +153,7 @@ public class ChessPiece {
                 }
 
                 // Pawn's special two-square move on its first move
-                if ((getTeamColor() == ChessGame.TeamColor.WHITE && currRow == 2) || (getTeamColor() == ChessGame.TeamColor.BLACK && currRow == 7) && (board.getPiece(newPosition) == null)) {
+                if ((getTeamColor().equals(ChessGame.TeamColor.WHITE) && currRow == 2) || (getTeamColor().equals(ChessGame.TeamColor.BLACK) && currRow == 7) && (board.getPiece(newPosition) == null)) {
                     int twoSquaresForward = currRow + 2 * rowDirection;
                     addPawnMove(board, myPosition, newPosition, movesList, twoSquaresForward, currCol, moveDirection);
                 }
@@ -169,13 +169,14 @@ public class ChessPiece {
 
                     ChessPosition capturePosition = new ChessPosition(rowCapture, colCapture);
 
+                    if (isValidPosition(rowCapture, colCapture)) {
                     if (board.getPiece(capturePosition) != null && (!board.getPiece(capturePosition).getTeamColor().equals(board.getPiece(myPosition).getTeamColor()))) {
                         if (moveDirection == 8 || moveDirection == 1) {
                             addPawnMove(board, myPosition, newPosition, movesList, rowCapture, colCapture, moveDirection);
-                        }
-                        else {
+                        } else {
                             oneMoveToAdd(board, myPosition, movesList, rowCapture, colCapture);
                         }
+                    }
                     }
                 }
             }

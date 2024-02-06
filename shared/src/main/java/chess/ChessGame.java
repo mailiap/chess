@@ -81,7 +81,7 @@ public class ChessGame {
 
         Collection<ChessMove> legalMoves = new ArrayList<>();
 
-        if (isInCheck(getTeamTurn())) {
+        if (!isInStalemate(getTeamTurn())) {
             legalMoves = piece.pieceMoves(getBoard(), startPosition);
         }
         return legalMoves;
@@ -108,14 +108,14 @@ public class ChessGame {
         Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), start);
 
         if (!validMoves.contains(move)) {
-            throw new InvalidMoveException("Invalid move: The specified move is not a valid move for the piece.");
+            throw new InvalidMoveException();
         }
 
         ChessBoard newBoard = getBoard(); // Implement a method to clone the board
         movePiece(move);
 
         if (isInCheck(piece.getTeamColor())) {
-            throw new InvalidMoveException("Invalid move: Move puts the team's king in check.");
+            throw new InvalidMoveException();
         }
 
         // If the move is valid, update the game state
@@ -200,11 +200,13 @@ public class ChessGame {
     public boolean isInCheckmate(TeamColor teamColor) {
         // Check if there is any move that can get the king out of check
         for (ChessPiece piece : getColorPieces(teamColor)) {
-            for (ChessMove move : piece.pieceMoves(getBoard(), piece.getPosition())) {
-                ChessBoard newBoard = getBoard(); // Implement a method to clone the board
-                newBoard.addPiece(move.getEndPosition(), piece);
-                if (isInCheck(teamColor)) {
-                    return true;
+            if (piece.getPieceType().equals(ChessPiece.PieceType.KING)) {
+                for (ChessMove move : piece.pieceMoves(getBoard(), piece.getPosition())) {
+                    ChessBoard newBoard=getBoard(); // Implement a method to clone the board
+                    newBoard.addPiece(move.getEndPosition(), piece);
+                    if (isInCheck(teamColor)) {
+                        return true;
+                    }
                 }
             }
         }
