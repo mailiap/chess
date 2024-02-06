@@ -171,10 +171,14 @@ public class ChessGame {
 
         // Perform the move by updating the board state
         if (piece.getPieceType().equals(ChessPiece.PieceType.PAWN)) {
-            if (getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 7 || getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 2) {
+            if (getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 7 && end.getRow() == 8 || getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 2 && end.getRow() == 1) {
                 // new piece using move for piece type and piece color
                 ChessPiece newPiece = new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
                 newBoard.addPiece(end, newPiece);
+                newBoard.addPiece(start, null);
+            }
+            else {
+                newBoard.addPiece(end, piece);
                 newBoard.addPiece(start, null);
             }
         }
