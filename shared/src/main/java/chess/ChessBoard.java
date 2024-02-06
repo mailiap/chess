@@ -28,24 +28,18 @@ public class ChessBoard {
         return "squares=" + Arrays.toString(squares) +
                 '}';
     }
-
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        ChessBoard clonedBoard = (ChessBoard) super.clone();
-
-        // Clone the nested array
-        clonedBoard.squares = new ChessPiece[8][8];
-        for (int i = 0; i < 8; i++) {
-            clonedBoard.squares[i] = this.squares[i].clone();
-        }
-        return clonedBoard;
-    }
-
     private ChessPiece[][] squares = new ChessPiece[8][8];
 
     public ChessBoard() {
-        
     }
+
+    public ChessBoard(ChessBoard original) {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    this.squares[i][j] = original.squares[i][j];
+                }
+            }
+        }
 
     /**
      * Adds a chess piece to the chessboard

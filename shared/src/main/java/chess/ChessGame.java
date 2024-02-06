@@ -72,19 +72,37 @@ public class ChessGame {
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         ChessPiece piece = getBoard().getPiece(startPosition);
-        setTeamTurn(piece.getTeamColor());
 
         // If there is no piece at the specified position, return null
         if (piece == null) {
             return null;
         }
 
-        Collection<ChessMove> legalMoves = new ArrayList<>();
+        setTeamTurn(piece.getTeamColor());
+        ChessBoard newBoard = new ChessBoard(getBoard()); // clone the board
+        Collection<ChessMove> legalMoves = piece.pieceMoves(newBoard, startPosition);
+        Collection<ChessMove> validList = new ArrayList<>();
 
-        if (!isInStalemate(getTeamTurn())) {
-            legalMoves = piece.pieceMoves(getBoard(), startPosition);
+        // input the color of the piece that moves
+        // clone = orginal .clone for everytim is works
+
+        for (ChessMove move : legalMoves) {
+            ChessPosition start = move.getStartPosition();
+            ChessPosition end = move.getEndPosition();
+
+            try {
+                movePiece(move, newBoard);
+            } catch (InvalidMoveException e) {
+                throw new RuntimeException(e);
+            }
+            if (isInCheck(piece.getTeamColor())) {
+                validList.add(new ChessMove(start, end));
+            }
+            // setting back to orginal position
+            newBoard.addPiece(start, piece);
+            newBoard.addPiece(end, null);
         }
-        return legalMoves;
+        return validList;
     }
 
     /**
@@ -95,24 +113,26 @@ public class ChessGame {
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
         if (getBoard() == null) {
-            throw new InvalidMoveException("No chessboard initialized.");
+            throw new InvalidMoveException();
         }
-
-        ChessPiece piece = getBoard().getPiece(move.getStartPosition());
+        ChessBoard newBoard = new ChessBoard(getBoard());
+        ChessPiece piece = newBoard.getPiece(move.getStartPosition());
 
         if (piece == null || piece.getTeamColor() != getTeamTurn()) {
-            throw new InvalidMoveException("Invalid move: No piece at the starting position or not the current team's turn.");
+            throw new InvalidMoveException();
         }
 
+
         ChessPosition start = move.getStartPosition();
-        Collection<ChessMove> validMoves = piece.pieceMoves(getBoard(), start);
+        Collection<ChessMove> validMoves = piece.pieceMoves(newBoard, start);
 
         if (!validMoves.contains(move)) {
             throw new InvalidMoveException();
         }
 
-        ChessBoard newBoard = getBoard(); // Implement a method to clone the board
-        movePiece(move);
+//        ChessBoard newBoard = getBoard();
+         // Implement a method to clone the board
+        movePiece(move, newBoard);
 
         if (isInCheck(piece.getTeamColor())) {
             throw new InvalidMoveException();
@@ -122,37 +142,37 @@ public class ChessGame {
         setBoard(newBoard);
         switchTeamTurn();
     }
-    public void movePiece(ChessMove move) throws InvalidMoveException {
+    public void movePiece(ChessMove move, ChessBoard newBoard) throws InvalidMoveException {
         ChessPosition start = move.getStartPosition();
         ChessPosition end = move.getEndPosition();
 
         // Check if the move is valid (e.g., within the board boundaries)
         if (!ChessPiece.isValidPosition(start.getRow(), start.getColumn()) || !ChessPiece.isValidPosition(end.getRow(), end.getColumn())) {
-            throw new InvalidMoveException("Invalid move: Positions are not within the board boundaries.");
+            throw new InvalidMoveException();
         }
 
         // Retrieve the piece at the starting position
-        ChessPiece piece = getBoard().getPiece(start);
+        ChessPiece piece = newBoard.getPiece(start);
 
         // Check if there is a piece at the starting position
         if (piece == null) {
-            throw new InvalidMoveException("Invalid move: No piece at the starting position.");
+            throw new InvalidMoveException();
         }
 
         // Check if the move is valid for the specific piece
-        if (!piece.pieceMoves(getBoard(), start).contains(move)) {
-            throw new InvalidMoveException("Invalid move: The specified move is not a valid move for the piece.");
+        if (!piece.pieceMoves(newBoard, start).contains(move)) {
+            throw new InvalidMoveException();
         }
 
         // Check if the target position is occupied by a piece of the same team
-        ChessPiece targetPiece = getBoard().getPiece(end);
+        ChessPiece targetPiece = newBoard.getPiece(end);
         if (targetPiece != null && targetPiece.getPieceType().equals(piece.getTeamColor())) {
-            throw new InvalidMoveException("Invalid move: Target position is occupied by a piece of the same team.");
+            throw new InvalidMoveException();
         }
 
         // Perform the move by updating the board state
-        getBoard().addPiece(end, piece);
-        getBoard().addPiece(start, null);
+        newBoard.addPiece(end, piece);
+        newBoard.addPiece(start, null);
     }
 
     private void switchTeamTurn() {
@@ -179,14 +199,13 @@ public class ChessGame {
 
         // Iterate over the opponent's pieces and check if any can capture the king
         for (ChessPiece opponentPiece : getColorPieces(opponentTeam)) {
-            Collection<ChessMove> opponentMoves = opponentPiece.pieceMoves(getBoard(), opponentPiece.getPosition());
+                Collection<ChessMove> opponentMoves = opponentPiece.pieceMoves(getBoard(), opponentPiece.getPosition());
             for (ChessMove opponentendMove : opponentMoves) {
                 if (opponentendMove.getEndPosition().equals(kingPosition)) {
                     return true;
                 }
             }
         }
-
         // If no opponent's move can capture the king, the team is not in check
         return false;
     }
@@ -202,7 +221,8 @@ public class ChessGame {
         for (ChessPiece piece : getColorPieces(teamColor)) {
             if (piece.getPieceType().equals(ChessPiece.PieceType.KING)) {
                 for (ChessMove move : piece.pieceMoves(getBoard(), piece.getPosition())) {
-                    ChessBoard newBoard=getBoard(); // Implement a method to clone the board
+//                    ChessBoard originalBoard = getBoard();
+                    ChessBoard newBoard = new ChessBoard(getBoard()); // Implement a method to clone the board
                     newBoard.addPiece(move.getEndPosition(), piece);
                     if (isInCheck(teamColor)) {
                         return true;
