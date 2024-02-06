@@ -98,7 +98,7 @@ public class ChessGame {
             }
 
             if (!newGame.isInCheck(piece.getTeamColor())) {
-                validList.add(new ChessMove(start, end));
+                validList.add(move);
             }
             // setting back to orginal position
             newBoard.addPiece(start, piece);
@@ -118,27 +118,27 @@ public class ChessGame {
             throw new InvalidMoveException();
         }
 
-        ChessBoard newBoard = new ChessBoard(getBoard());
-        ChessPiece piece = newBoard.getPiece(move.getStartPosition());
+//        ChessBoard newBoard = new ChessBoard(getBoard());
+        ChessPiece piece = getBoard().getPiece(move.getStartPosition());
 
         if (piece == null || piece.getTeamColor() != getTeamTurn()) {
             throw new InvalidMoveException();
         }
 
         ChessPosition start = move.getStartPosition();
-        Collection<ChessMove> validMoves = piece.pieceMoves(newBoard, start);
+        Collection<ChessMove> validMoves = validMoves(start);
 
         if (!validMoves.contains(move)) {
             throw new InvalidMoveException();
         }
 
-        movePiece(move, newBoard);
+        movePiece(move, getBoard());
 
-        if (isInCheck(piece.getTeamColor())) {
-            throw new InvalidMoveException();
-        }
+//        if (isInCheck(piece.getTeamColor())) {
+//            throw new InvalidMoveException();
+//        }
 
-        setBoard(newBoard);
+//        setBoard(newBoard);
         switchTeamTurn();
     }
     public void movePiece(ChessMove move, ChessBoard newBoard) throws InvalidMoveException {
@@ -171,7 +171,7 @@ public class ChessGame {
 
         // Perform the move by updating the board state
         if (piece.getPieceType().equals(ChessPiece.PieceType.PAWN)) {
-            if (getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 7 && end.getRow() == 8 || getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 2 && end.getRow() == 1) {
+            if (getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 7 && end.getRow() == 8 || getTeamTurn() == TeamColor.BLACK && start.getRow() == 2 && end.getRow() == 1) {
                 // new piece using move for piece type and piece color
                 ChessPiece newPiece = new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
                 newBoard.addPiece(end, newPiece);
