@@ -73,20 +73,21 @@ public class ChessGame {
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         ChessPiece piece = getBoard().getPiece(startPosition);
 
-        // If there is no piece at the specified position, return null
         if (piece == null) {
             return null;
         }
 
         setTeamTurn(piece.getTeamColor());
-        ChessBoard newBoard = new ChessBoard(getBoard()); // clone the board
-        Collection<ChessMove> legalMoves = piece.pieceMoves(newBoard, startPosition);
+        Collection<ChessMove> legalMoves = piece.pieceMoves(getBoard(), startPosition);
         Collection<ChessMove> validList = new ArrayList<>();
 
         // input the color of the piece that moves
         // clone = orginal .clone for everytim is works
 
         for (ChessMove move : legalMoves) {
+            ChessBoard newBoard = new ChessBoard(getBoard()); // clone the board
+            ChessGame newGame = new ChessGame();
+            newGame.setBoard(newBoard);
             ChessPosition start = move.getStartPosition();
             ChessPosition end = move.getEndPosition();
 
@@ -95,7 +96,8 @@ public class ChessGame {
             } catch (InvalidMoveException e) {
                 throw new RuntimeException(e);
             }
-            if (isInCheck(piece.getTeamColor())) {
+
+            if (!newGame.isInCheck(piece.getTeamColor())) {
                 validList.add(new ChessMove(start, end));
             }
             // setting back to orginal position
@@ -115,13 +117,13 @@ public class ChessGame {
         if (getBoard() == null) {
             throw new InvalidMoveException();
         }
+
         ChessBoard newBoard = new ChessBoard(getBoard());
         ChessPiece piece = newBoard.getPiece(move.getStartPosition());
 
         if (piece == null || piece.getTeamColor() != getTeamTurn()) {
             throw new InvalidMoveException();
         }
-
 
         ChessPosition start = move.getStartPosition();
         Collection<ChessMove> validMoves = piece.pieceMoves(newBoard, start);
@@ -130,15 +132,12 @@ public class ChessGame {
             throw new InvalidMoveException();
         }
 
-//        ChessBoard newBoard = getBoard();
-         // Implement a method to clone the board
         movePiece(move, newBoard);
 
         if (isInCheck(piece.getTeamColor())) {
             throw new InvalidMoveException();
         }
 
-        // If the move is valid, update the game state
         setBoard(newBoard);
         switchTeamTurn();
     }
@@ -171,8 +170,18 @@ public class ChessGame {
         }
 
         // Perform the move by updating the board state
-        newBoard.addPiece(end, piece);
-        newBoard.addPiece(start, null);
+        if (piece.getPieceType().equals(ChessPiece.PieceType.PAWN)) {
+            if (getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 7 || getTeamTurn() == ChessGame.TeamColor.WHITE && start.getRow() == 2) {
+                // new piece using move for piece type and piece color
+                ChessPiece newPiece = new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
+                newBoard.addPiece(end, newPiece);
+                newBoard.addPiece(start, null);
+            }
+        }
+        else {
+            newBoard.addPiece(end, piece);
+            newBoard.addPiece(start, null);
+        }
     }
 
     private void switchTeamTurn() {
@@ -186,18 +195,14 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        // Find the position of the king for the specified team
         ChessPosition kingPosition = getBoard().findKingPosition(teamColor);
 
         if (kingPosition == null) {
-            // If the king is not found, the team cannot be in check
             return false;
         }
 
-        // Get the opponent's team color
         TeamColor opponentTeam = (teamColor == TeamColor.WHITE) ? TeamColor.BLACK : TeamColor.WHITE;
 
-        // Iterate over the opponent's pieces and check if any can capture the king
         for (ChessPiece opponentPiece : getColorPieces(opponentTeam)) {
                 Collection<ChessMove> opponentMoves = opponentPiece.pieceMoves(getBoard(), opponentPiece.getPosition());
             for (ChessMove opponentendMove : opponentMoves) {
@@ -206,7 +211,6 @@ public class ChessGame {
                 }
             }
         }
-        // If no opponent's move can capture the king, the team is not in check
         return false;
     }
 
@@ -217,12 +221,10 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        // Check if there is any move that can get the king out of check
         for (ChessPiece piece : getColorPieces(teamColor)) {
             if (piece.getPieceType().equals(ChessPiece.PieceType.KING)) {
                 for (ChessMove move : piece.pieceMoves(getBoard(), piece.getPosition())) {
-//                    ChessBoard originalBoard = getBoard();
-                    ChessBoard newBoard = new ChessBoard(getBoard()); // Implement a method to clone the board
+                    ChessBoard newBoard = new ChessBoard(getBoard());
                     newBoard.addPiece(move.getEndPosition(), piece);
                     if (isInCheck(teamColor)) {
                         return true;
@@ -241,26 +243,22 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        // Check if it's the specified team's turn
         if (teamColor.equals(getTeamTurn())) {
-            // Iterate through all pieces on the board
             for (int row = 1; row <= 8; row++) {
                 for (int col = 1; col <= 8; col++) {
                     ChessPosition currentPosition = new ChessPosition(row, col);
                     ChessPiece currentPiece = getBoard().getPiece(currentPosition);
 
-                    // Check if the piece belongs to the specified team
                     if (currentPiece != null && currentPiece.getTeamColor().equals(teamColor)) {
-                        // Check if the piece has any legal moves
                         if (hasValidMoves(teamColor)) {
-                            return true; // The team has legal moves, not in stalemate
+                            return true;
                         }
                     }
                 }
             }
-            return true; // No legal moves for any piece of the specified team, in stalemate
+            return true;
         }
-        return false; // It's not the specified team's turn
+        return false;
     }
 
     public boolean hasValidMoves(TeamColor teamColor) {
