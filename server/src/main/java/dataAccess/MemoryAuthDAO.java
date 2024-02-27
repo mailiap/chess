@@ -8,8 +8,12 @@ public class MemoryAuthDAO implements AuthDAO {
     private final Map<String, AuthData> authTokens = new HashMap<>();
 
     @Override
-    public void createAuth(AuthData authRecord) {
-        authTokens.put(authRecord.authToken(), authRecord);
+    public AuthData createAuth(AuthData authRecord) {
+        String authToken = authRecord.authToken();
+        if (authTokens.containsKey(authToken)) {
+            throw new RuntimeException("Authentication token '" + authToken + "' already exists");
+        }
+        return authTokens.put(authToken, authRecord);
     }
 
     @Override

@@ -23,9 +23,9 @@ public class GameServiceTest {
 
     @Test
     public void testCreateGame_Negative() {
-        GameData gameRecord = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-        testGameDAO.createGame(gameRecord);
-        assertThrows(RuntimeException.class, () -> testGameDAO.createGame(gameRecord));
+        GameData gameRecord1 = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
+        testGameDAO.createGame(gameRecord1);
+        assertThrows(RuntimeException.class, () -> testGameDAO.createGame(gameRecord1));
     }
 
     @Test

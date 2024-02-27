@@ -16,10 +16,28 @@ public class MemoryUserDAO implements UserDAO {
     private final Map<String, AuthData> authTokens = new HashMap<>();
 
     @Override
+    public UserData createUser(UserData userRecord) {
+         String user = userRecord.username();
+        if (users.containsKey(user)) {
+            throw new RuntimeException("User '" + user + "' already exists");
+        }
+        return users.put(user, userRecord);
+    }
+
+    @Override
+    public UserData getUser(String username) {
+        return users.get(username);
+    }
+
+    @Override
     public AuthData register(UserData user) {
-        users.put(user.username(), user);
-        String authToken = generateAuthToken(user.username());
-        AuthData authData = new AuthData(authToken, user.username());
+        String username = user.username();
+        if (users.containsKey(username)) {
+            throw new RuntimeException("User '" + username + "' already exists");
+        }
+        users.put(username, user);
+        String authToken = generateAuthToken(username);
+        AuthData authData = new AuthData(authToken, username);
         authTokens.put(authToken, authData);
         return authData;
     }
@@ -45,15 +63,5 @@ public class MemoryUserDAO implements UserDAO {
     @Override
     public String generateAuthToken(String username) {
         return "token_" + username;
-    }
-
-    @Override
-    public void createUser(UserData userRecord) {
-        users.put(userRecord.username(), userRecord);
-    }
-
-    @Override
-    public UserData getUser(String username) {
-        return users.get(username);
     }
 }

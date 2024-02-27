@@ -2,6 +2,7 @@ package service;
 
 import dataAccess.UserDAO;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 
 public class UserService {
@@ -9,6 +10,14 @@ public class UserService {
 
     public UserService(UserDAO userDAO) {
         this.userDAO = userDAO;
+    }
+
+    public UserData createUser(UserData userRecord) {
+        return userDAO.createUser(userRecord);
+    }
+
+    public UserData getUser(String username) {
+        return userDAO.getUser(username);
     }
 
     public AuthData register(UserData user) {

@@ -10,13 +10,15 @@ public class AuthService {
         this.authDAO = authDAO;
     }
 
+    public AuthData createAuth(AuthData authRecord) {
+        return authDAO.createAuth(authRecord);
+    }
+
     public AuthData getAuth(String authToken) {
-        // Retrieve authentication data using the provided token
         return authDAO.getAuth(authToken);
     }
 
     public void deleteAuth(String authToken) {
-        // Delete authentication data associated with the provided token
         authDAO.deleteAuth(authToken);
     }
 }
