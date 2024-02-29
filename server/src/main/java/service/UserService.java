@@ -1,53 +1,77 @@
 package service;
 
-import dataAccess.UserDAO;
-import model.AuthData;
-import model.GameData;
-import model.UserData;
+import dataAccess.*;
+import exception.ResponseException;
+import model.*;
+import java.util.*;
 
-public class UserService {
-    private final UserDAO userDAO;
+public class UserService implements UserDAO {
+    public static Map<String, UserData> users = new HashMap<>();
+    public static Map<String, AuthData> authTokens = new HashMap<>();
 
-    public UserService(UserDAO userDAO) {
-        this.userDAO = userDAO;
-    }
-
-    public UserData createUser(UserData userRecord) {
-        return userDAO.createUser(userRecord);
-    }
-
-    public UserData getUser(String username) {
-        return userDAO.getUser(username);
-    }
-
-    public AuthData register(UserData user) {
-        // Check if the username already exists
-        UserData existingUser = userDAO.getUser(user.username());
-        if (existingUser != null) {
-            throw new RuntimeException("Username already exists");
+    public static UserData createUser(UserData userRecord) {
+        String user = userRecord.username();
+        if (users.containsKey(user)) {
+            throw new RuntimeException("User '" + user + "' already exists");
         }
-        // Register the new user
-        userDAO.createUser(user);
-        // Generate authentication data and return it
-        return login(user);
+        return users.put(user, userRecord);
     }
 
-    public AuthData login(UserData user) {
-        // Check if the user exists
-        UserData existingUser = userDAO.getUser(user.username());
-        if (existingUser == null || !existingUser.password().equals(user.password())) {
-            throw new RuntimeException("Invalid username or password");
+    public static UserData getUser(String username) {
+        return users.get(username);
+    }
+
+    public static Object register(UserData user) throws ResponseException {
+        if (user.username().isEmpty() || user.password().isEmpty() || user.email().isEmpty()) {
+            throw new ResponseException(400, "Error: bad request");
         }
-        // Generate and return authentication data
-        return new AuthData(generateAuthToken(user.username()), user.username());
+        for (UserData existingUser : users.values()) {
+            if (existingUser.email().equals(user.email()) || (users.containsKey(user.username()))) {
+                throw new ResponseException(403, "Error: already taken");
+            }
+        }
+        String authToken = generateAuthToken();
+        AuthData authData = new AuthData(user.username(), authToken);
+        users.put(user.username(), user);
+        authTokens.put(authToken, authData);
+        return authData;
     }
 
-    public void logout(UserData user) {
-        // No action needed for logout in this basic example
+    public static Object login(UserData user) {
+        UserData storedUser=users.get(user.username());
+        if (storedUser != null && storedUser.password().equals(user.password())) {
+            String authToken=generateAuthToken();
+            AuthData authData=new AuthData(user.username(), authToken);
+            authTokens.put(authToken, authData);
+            return authData;
+        } else {
+            Map<String, Object> errorResponse=new HashMap<>();
+            errorResponse.put("message", "Error: unauthorized");
+            return errorResponse;
+        }
     }
 
-    private String generateAuthToken(String username) {
-        // In a real-world scenario, this method should generate a secure token
-        return username + "_token";
+    public static void logout(String authToken) throws ResponseException {
+        // Check if authToken is provided
+        if (authToken == null || authToken.isEmpty()) {
+            throw new ResponseException(401, "Error: unauthorized");
+        }
+        // Check if the provided authToken exists
+        boolean authTokenFound = false;
+        for (AuthData authData : authTokens.values()) {
+            if (authData.authToken().equals(authToken)) {
+                authTokenFound = true;
+                authTokens.remove(authData.authToken());
+                break;
+            }
+        }
+        // If authToken is not found, throw Unauthorized error
+        if (!authTokenFound) {
+            throw new ResponseException(401, "Error: unauthorized");
+        }
+    }
+
+    private static String generateAuthToken() {
+        return UUID.randomUUID().toString();
     }
 }

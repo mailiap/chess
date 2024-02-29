@@ -3,22 +3,30 @@ package service;
 import dataAccess.AuthDAO;
 import model.AuthData;
 
-public class AuthService {
-    private final AuthDAO authDAO;
+import java.util.HashMap;
+import java.util.Map;
 
-    public AuthService(AuthDAO authDAO) {
-        this.authDAO = authDAO;
-    }
+import static service.GameService.games;
+import static service.UserService.users;
+
+public class AuthService implements AuthDAO {
+    private static Map<String, AuthData> authTokens = new HashMap<>();
 
     public AuthData createAuth(AuthData authRecord) {
-        return authDAO.createAuth(authRecord);
+        String authToken = authRecord.authToken();
+        if (authTokens.containsKey(authToken)) {
+            throw new RuntimeException("Authentication token '" + authToken + "' already exists");
+        }
+        return authTokens.put(authToken, authRecord);
     }
 
     public AuthData getAuth(String authToken) {
-        return authDAO.getAuth(authToken);
+        return authTokens.get(authToken);
     }
 
-    public void deleteAuth(String authToken) {
-        authDAO.deleteAuth(authToken);
+    public static void deleteAllAuth() {
+        users.clear();
+        games.clear();
+        authTokens.clear();
     }
 }

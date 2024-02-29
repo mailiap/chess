@@ -1,11 +1,11 @@
 package dataAccess;
 
 import model.GameData;
-import java.util.List;
 
 public interface GameDAO {
-    GameData createGame(GameData gameRecord);
+    static void createGame(GameData gameRecord) {}
     GameData getGame(int gameId);
-    List<GameData> listGames();
+    static void listGames() {}
     void updateGame(int gameId, GameData updatedGame);
+    static void joinGame(GameData userDataRequest, String playerColor, String authToken) {}
 }
