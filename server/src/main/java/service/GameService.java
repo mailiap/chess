@@ -1,16 +1,13 @@
 package service;
-
 import dataAccess.*;
 import exception.ResponseException;
 import model.AuthData;
 import model.GameData;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import model.UserData;
 import org.junit.jupiter.api.MethodOrderer;
 import service.*;
@@ -18,7 +15,6 @@ import service.*;
 import static dataAccess.GameMemoryDAO.generateGameID;
 
 public class GameService{
-
     public static List<GameData> listGames(String authToken) throws ResponseException {
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
@@ -28,7 +24,6 @@ public class GameService{
         }
         return new ArrayList<>(GameMemoryDAO.games.values());
     }
-
     public static Object createGame(GameData gameRecord, String authToken) throws ResponseException, DataAccessException {
         String gameName=gameRecord.gameName();
         AuthData username=AuthMemoryDAO.getAuth(authToken);
@@ -49,7 +44,6 @@ public class GameService{
 
     public static Object joinGame(int gameID, String playerColor, String authToken) throws ResponseException, DataAccessException {
         GameData game = GameMemoryDAO.getGame(gameID);
-
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
         }
@@ -62,10 +56,6 @@ public class GameService{
         if (!GameMemoryDAO.games.containsKey(gameID)) {
             throw new ResponseException(400, "Error: bad request");
         }
-//        playerColor = playerColor.toUpperCase();
-//        if (!playerColor.equals("WHITE") && !playerColor.equals("BLACK")) {
-//            throw new ResponseException(400, "Error: bad request");
-//        }
         if (playerColor != null) {
             if ((playerColor.equals("WHITE") && game.whiteUsername() != null) ||
                     (playerColor.equals("BLACK") && game.blackUsername() != null)) {

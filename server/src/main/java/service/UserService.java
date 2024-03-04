@@ -1,12 +1,10 @@
 package service;
-
 import dataAccess.*;
 import exception.ResponseException;
 import model.*;
 import java.util.*;
 
 public class UserService {
-
     public static Object register(UserData user) throws ResponseException, DataAccessException {
         if ((user.username() == null) || user.password() == null || user.email() == null) {
             throw new ResponseException(400, "Error: bad request");
@@ -22,7 +20,6 @@ public class UserService {
         new AuthMemoryDAO().createAuth(authData);
         return authData;
     }
-
     public static Object login(UserData user) throws DataAccessException, ResponseException {
         UserData storedUser=UserMemoryDAO.users.get(user.username());
         if (storedUser == null || !storedUser.password().equals(user.password())) {
@@ -33,7 +30,6 @@ public class UserService {
         AuthMemoryDAO.createAuth(authData);
         return authData;
     }
-
     public static void logout(String authToken) throws ResponseException {
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
