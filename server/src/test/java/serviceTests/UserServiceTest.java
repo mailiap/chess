@@ -56,18 +56,16 @@ public class UserServiceTest {
     @Test
     public void testLogout_Positive() throws ResponseException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
-        AuthData authData =(AuthData) UserService.login(userData);
 
         UserService.register(userData);
+        AuthData authData =(AuthData) UserService.login(userData);
         UserService.logout(authData.authToken());
 
         assertNull(UserMemoryDAO.getUser(authData.authToken()));
     }
-
     @Test
     public void testLogout_Negative() {
         UserData userData = new UserData("testUser", "password", "test@example.com");
-
         assertThrows(ResponseException.class, () -> UserService.logout(userData.username()));
     }
 }
