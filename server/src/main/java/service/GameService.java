@@ -1,105 +1,94 @@
 package service;
 
-import dataAccess.GameDAO;
+import dataAccess.*;
 import exception.ResponseException;
+import model.AuthData;
 import model.GameData;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import model.UserData;
+import org.junit.jupiter.api.MethodOrderer;
 import service.*;
 
-import static service.UserService.authTokens;
+import static dataAccess.GameMemoryDAO.generateGameID;
 
-public class GameService implements GameDAO {
-    public static Map<Integer, GameData> games=new HashMap<>();
-
-    public static Object createGame(GameData gameRecord, String authToken) throws ResponseException {
-        // Check if authToken is provided
-        if (authToken == null || authToken.isEmpty()) {
-            throw new ResponseException(401, "Error: unauthorized");
-        }
-        // Check if the gameName is empty
-        if (gameRecord.gameName().isEmpty()) {
-            throw new ResponseException(400, "Error: bad request" );
-        }
-        // Check if the gameName is already taken
-        for (GameData existingGame : games.values()) {
-            if (existingGame.gameName().equals(gameRecord.gameName())) {
-                throw new ResponseException(400, "Error: bad request" );
-            }
-        }
-        // Generate a new gameID
-        int gameID=gameRecord.gameID();
-        // Create the new game
-        games.put(gameID, gameRecord);
-        // Return the gameID of the newly created game
-        return Map.of("gameID", gameID);
-    }
-
-    public GameData getGame(int gameId) {
-        return games.get(gameId);
-    }
+public class GameService{
 
     public static List<GameData> listGames(String authToken) throws ResponseException {
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
         }
-        if (!authTokens.containsKey(authToken)) {
+        if (AuthMemoryDAO.getAuth(authToken) == null) {
             throw new ResponseException(401, "Error: unauthorized");
         }
-        return new ArrayList<>(games.values());
+        return new ArrayList<>(GameMemoryDAO.games.values());
     }
 
-    public void updateGame(int gameId, GameData updatedGame) {
-        if (games.containsKey(gameId)) {
-            games.put(gameId, updatedGame);
-        } else {
-            throw new IllegalArgumentException("Game with ID " + gameId + " does not exist");
-        }
-    }
-
-    public static Object joinGame(int gameID, String playerColor, String authToken) throws ResponseException {
-        // Check if authToken is provided
+    public static Object createGame(GameData gameRecord, String authToken) throws ResponseException, DataAccessException {
+        String gameName=gameRecord.gameName();
+        AuthData username=AuthMemoryDAO.getAuth(authToken);
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
         }
-
-        // Check if the playerColor and gameID are provided
-        if (playerColor == null || playerColor.isEmpty() || gameID == 0) {
+        if (username == null) {
+            throw new ResponseException(401, "Error: unauthorized");
+        }
+        if (gameName == null) {
             throw new ResponseException(400, "Error: bad request");
         }
+        int gameID=generateGameID();
+        GameData newGame=new GameData(gameID, gameRecord.whiteUsername(), gameRecord.blackUsername(), gameName, gameRecord.game());
+        GameMemoryDAO.newGame(gameID, newGame);
+        return Map.of("gameID", gameID);
+    }
 
-        // Check if the game exists
-        if (!games.containsKey(gameID)) {
+    public static Object joinGame(int gameID, String playerColor, String authToken) throws ResponseException, DataAccessException {
+        GameData game = GameMemoryDAO.getGame(gameID);
+
+        if (authToken == null || authToken.isEmpty()) {
+            throw new ResponseException(401, "Error: unauthorized");
+        }
+        if (AuthMemoryDAO.getAuth(authToken) == null) {
+            throw new ResponseException(401, "Error: unauthorized");
+        }
+        if (playerColor == null && gameID == 0) {
             throw new ResponseException(400, "Error: bad request");
         }
-
-        // Check if the playerColor is valid (WHITE or BLACK)
-        playerColor = playerColor.toUpperCase();
-        if (!playerColor.equals("WHITE") && !playerColor.equals("BLACK")) {
+        if (!GameMemoryDAO.games.containsKey(gameID)) {
             throw new ResponseException(400, "Error: bad request");
         }
-
-        // Get the game data
-        GameData game = games.get(gameID);
-
-        // Check if the game already has a player with the specified color
-        if ((playerColor.equals("WHITE") && game.whiteUsername() != null) ||
-                (playerColor.equals("BLACK") && game.blackUsername() != null)) {
-            throw new ResponseException(403, "Error: already taken");
+//        playerColor = playerColor.toUpperCase();
+//        if (!playerColor.equals("WHITE") && !playerColor.equals("BLACK")) {
+//            throw new ResponseException(400, "Error: bad request");
+//        }
+        if (playerColor != null) {
+            if ((playerColor.equals("WHITE") && game.whiteUsername() != null) ||
+                    (playerColor.equals("BLACK") && game.blackUsername() != null)) {
+                throw new ResponseException(403, "Error: already taken");
+            }
+            AuthData username=AuthMemoryDAO.getAuth(authToken);
+            if (playerColor.equals("WHITE")) {
+                GameData newGame = new GameData(game.gameID(), username.username(), game.blackUsername(), game.gameName(), game.game());
+                GameMemoryDAO.updateGame(gameID, newGame);
+            } else if (playerColor.equals("BLACK")) {
+                GameData newGame = new GameData(game.gameID(), game.whiteUsername(), username.username(), game.gameName(), game.game());
+                GameMemoryDAO.updateGame(gameID, newGame);
+            }
         }
-        // Add the caller as the requested color to the game or as an observer if no color is specified
-//        String username = authTokens.get(authToken).username();
-        if (playerColor.equals("WHITE")) {
-            game.whiteUsername();
-        } else if (playerColor.equals("BLACK")) {
-            game.blackUsername();
+        if (playerColor == null) {
+            if (game.whiteUsername() != null) {
+                GameData newGame = new GameData(game.gameID(), playerColor, game.blackUsername(), game.gameName(), game.game());
+                GameMemoryDAO.updateGame(gameID, newGame);
+            } else {
+                GameData newGame = new GameData(game.gameID(), game.whiteUsername(), playerColor, game.gameName(), game.game());
+                GameMemoryDAO.updateGame(gameID, newGame);
+            }
         }
-        // Return success response
         return Map.of("", "");
     }
 }

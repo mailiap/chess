@@ -1,4 +1,5 @@
 package server;
 
-public record JoinGameRequest(int gameID, String playColor)  {
-}
+import chess.ChessGame;
+
+public record JoinGameRequest(String playerColor, int gameID)  {}

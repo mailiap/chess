@@ -1,82 +1,82 @@
-//package passoffTests.serviceTests;
+package passoffTests.serviceTests;
+
+import exception.ResponseException;
+import model.*;
+import dataAccess.*;
+import service.*;
+import org.junit.jupiter.api.*;
+import org.mockito.*;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class GameServiceTest {
+    @InjectMocks
+    private GameService testGameDAO;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        GameMemoryDAO.games.clear();
+    }
+
+    @Test
+    void listGames_Postive() throws DataAccessException {
+        GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
+        String username = "username";
+        String authToken = UserMemoryDAO.generateAuthToken(username);
+        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
+        GameMemoryDAO.newGame(1, testGame);
+        assertDoesNotThrow(() -> {testGameDAO.listGames(authToken);
+        });
+    }
+
+    @Test
+    void listGames_Negative() {
+        String invalidAuthToken = "invalidAuthToken";
+        assertThrows(ResponseException.class, () -> {testGameDAO.listGames(invalidAuthToken);
+        });
+    }
+
+    @Test
+    void createGame_Positive() throws DataAccessException {
+        GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
+        String username = "username";
+        String authToken = UserMemoryDAO.generateAuthToken(username);
+        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
+        assertDoesNotThrow(() -> {testGameDAO.createGame(testGame, authToken);
+        });
+    }
 //
-//import model.*;
-//import dataAccess.*;
-//import service.*;
-//import org.junit.jupiter.api.*;
-//import org.mockito.*;
-//import java.util.*;
-//import static org.junit.jupiter.api.Assertions.*;
-//
-//public class GameServiceTest {
-//    @InjectMocks
-//    private GameService testGameDAO;
-//
-//    @BeforeEach
-//    public void setUp() {
-//        MockitoAnnotations.openMocks(this);
-//    }
-//
-//    @Test
-//    public void testCreateGame_Positive() {
-//        GameData gameRecord = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-//        assertDoesNotThrow(() -> testGameDAO.createGame(gameRecord));
-//    }
-//
-//    @Test
-//    public void testCreateGame_Negative() {
-//        GameData gameRecord1 = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-//        testGameDAO.createGame(gameRecord1);
-//        assertThrows(RuntimeException.class, () -> testGameDAO.createGame(gameRecord1));
-//    }
-//
-//    @Test
-//    public void testGetGame_Positive() {
-//        GameData expectedGameRecord = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-//        testGameDAO.createGame(expectedGameRecord);
-//        GameData result = testGameDAO.getGame(1);
-//        assertNotNull(result);
-//        assertEquals(expectedGameRecord, result);
-//    }
-//
-//    @Test
-//    public void testGetGame_Negative() {
-//        GameData result = testGameDAO.getGame(1);
-//        assertNull(result);
-//    }
-//
-//    @Test
-//    public void testListGames_Positive() {
-//        GameData gameRecord1 = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-//        GameData gameRecord2 = new GameData(2, "whitePlayer", "blackPlayer", "Game 2", null);
-//        testGameDAO.createGame(gameRecord1);
-//        testGameDAO.createGame(gameRecord2);
-//        List<GameData> games = testGameDAO.listGames();
-//        assertNotNull(games);
-//        assertEquals(2, games.size());
-//    }
-//
-//    @Test
-//    public void testListGames_Negative() {
-//        List<GameData> games = testGameDAO.listGames();
-//        assertNotNull(games);
-//        assertEquals(0, games.size());
-//    }
-//
-//    @Test
-//    public void testUpdateGame_Positive() {
-//        GameData originalGameRecord = new GameData(1, "whitePlayer", "blackPlayer", "Game 1", null);
-//        testGameDAO.createGame(originalGameRecord);
-//        GameData updatedGameRecord = new GameData(1, "updatedWhitePlayer", "updatedBlackPlayer", "Updated Game 1", null);
-//        testGameDAO.updateGame(1, updatedGameRecord);
-//        GameData result = testGameDAO.getGame(1);
-//        assertNotNull(result);
-//        assertEquals(updatedGameRecord, result);
-//    }
-//
-//    @Test
-//    public void testUpdateGame_Negative() {
-//        GameData updatedGameRecord = new GameData(1, "updatedWhitePlayer", "updatedBlackPlayer", "Updated Game 1", null);
-//        assertThrows(RuntimeException.class, () -> testGameDAO.updateGame(1, updatedGameRecord));
-//    }
-//}
+    @Test
+    void createGame_Negative() {
+        GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
+        String invalidAuthToken = "invalidAuthToken";
+        assertThrows(ResponseException.class, () -> {testGameDAO.createGame(testGame, invalidAuthToken);
+        });
+    }
+
+    @Test
+    void joinGame_Postive() throws ResponseException, DataAccessException {
+        int gameID = 1;
+        String playerColor = "WHITE";
+        String username = "username";
+        String authToken = UserMemoryDAO.generateAuthToken(username);
+        GameData testGame = new GameData(1, null, null, "gameName", null);
+        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
+        GameMemoryDAO.newGame(gameID, testGame);
+        testGameDAO.joinGame(gameID, playerColor, authToken);
+        GameData updatedGameData = GameMemoryDAO.getGame(gameID);
+        assertEquals(username, updatedGameData.whiteUsername());
+    }
+
+    @Test
+    void joinGame_Negative() throws ResponseException, DataAccessException {
+        String invalidColor = "INVALID_COLOR";
+        String username = "username";
+        String authToken = UserMemoryDAO.generateAuthToken(username);
+        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
+        GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
+        GameMemoryDAO.newGame(1, testGame);
+        testGameDAO.joinGame(1, invalidColor, authToken);
+    }
+}
