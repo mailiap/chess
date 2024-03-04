@@ -6,6 +6,7 @@ import java.util.Map;
 
 public class AuthMemoryDAO implements AuthDAO {
     public static Map<String, AuthData> authTokens = new HashMap<>();
+
     public static void createAuth(AuthData authRecord) throws DataAccessException {
         String authToken = authRecord.authToken();
         // throw exception
@@ -15,6 +16,7 @@ public class AuthMemoryDAO implements AuthDAO {
         // create authtoken
          authTokens.put(authToken, authRecord);
     }
+
     public static AuthData getAuth(String authToken) {
         return authTokens.get(authToken);
     }
