@@ -103,6 +103,11 @@
             <scope>system</scope>
             <systemPath>${pom.basedir}/lib/passoff-dependencies.jar</systemPath>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.10.00</version>
+        </dependency>
     </dependencies>
 
 
