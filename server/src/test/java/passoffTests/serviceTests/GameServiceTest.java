@@ -5,17 +5,17 @@ import model.*;
 import dataAccess.*;
 import service.*;
 import org.junit.jupiter.api.*;
-import org.mockito.*;
+//import org.mockito.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class GameServiceTest {
-    @InjectMocks
-    private GameService testGameDAO;
+//    @InjectMocks
+//    private GameService testGameDAO;
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
+//        MockitoAnnotations.openMocks(this);
         GameMemoryDAO.games.clear();
     }
 
@@ -26,14 +26,14 @@ public class GameServiceTest {
         String authToken = UserMemoryDAO.generateAuthToken(username);
         AuthMemoryDAO.createAuth(new AuthData(username, authToken));
         GameMemoryDAO.newGame(1, testGame);
-        assertDoesNotThrow(() -> {testGameDAO.listGames(authToken);
+        assertDoesNotThrow(() -> {GameService.listGames(authToken);
         });
     }
 
     @Test
     void listGames_Negative() {
         String invalidAuthToken = "invalidAuthToken";
-        assertThrows(ResponseException.class, () -> {testGameDAO.listGames(invalidAuthToken);
+        assertThrows(ResponseException.class, () -> {GameService.listGames(invalidAuthToken);
         });
     }
 
@@ -43,7 +43,7 @@ public class GameServiceTest {
         String username = "username";
         String authToken = UserMemoryDAO.generateAuthToken(username);
         AuthMemoryDAO.createAuth(new AuthData(username, authToken));
-        assertDoesNotThrow(() -> {testGameDAO.createGame(testGame, authToken);
+        assertDoesNotThrow(() -> {GameService.createGame(testGame, authToken);
         });
     }
 //
@@ -51,7 +51,7 @@ public class GameServiceTest {
     void createGame_Negative() {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String invalidAuthToken = "invalidAuthToken";
-        assertThrows(ResponseException.class, () -> {testGameDAO.createGame(testGame, invalidAuthToken);
+        assertThrows(ResponseException.class, () -> {GameService.createGame(testGame, invalidAuthToken);
         });
     }
 
@@ -64,7 +64,7 @@ public class GameServiceTest {
         GameData testGame = new GameData(1, null, null, "gameName", null);
         AuthMemoryDAO.createAuth(new AuthData(username, authToken));
         GameMemoryDAO.newGame(gameID, testGame);
-        testGameDAO.joinGame(gameID, playerColor, authToken);
+        GameService.joinGame(gameID, playerColor, authToken);
         GameData updatedGameData = GameMemoryDAO.getGame(gameID);
         assertEquals(username, updatedGameData.whiteUsername());
     }
@@ -77,6 +77,6 @@ public class GameServiceTest {
         AuthMemoryDAO.createAuth(new AuthData(username, authToken));
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         GameMemoryDAO.newGame(1, testGame);
-        testGameDAO.joinGame(1, invalidColor, authToken);
+        GameService.joinGame(1, invalidColor, authToken);
     }
 }
