@@ -1,4 +1,5 @@
 package service;
+
 import dataAccess.*;
 import exception.ResponseException;
 import model.AuthData;

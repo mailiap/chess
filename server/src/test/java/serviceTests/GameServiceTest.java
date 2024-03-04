@@ -1,24 +1,17 @@
 package serviceTests;
-
 import exception.ResponseException;
 import model.*;
 import dataAccess.*;
 import service.*;
 import org.junit.jupiter.api.*;
-//import org.mockito.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class GameServiceTest {
-//    @InjectMocks
-//    private GameService testGameDAO;
-
     @BeforeEach
     public void setUp() {
-//        MockitoAnnotations.openMocks(this);
         GameMemoryDAO.games.clear();
     }
-
     @Test
     void listGames_Postive() throws DataAccessException {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
@@ -29,14 +22,12 @@ public class GameServiceTest {
         assertDoesNotThrow(() -> {GameService.listGames(authToken);
         });
     }
-
     @Test
     void listGames_Negative() {
         String invalidAuthToken = "invalidAuthToken";
         assertThrows(ResponseException.class, () -> {GameService.listGames(invalidAuthToken);
         });
     }
-
     @Test
     void createGame_Positive() throws DataAccessException {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
@@ -46,7 +37,6 @@ public class GameServiceTest {
         assertDoesNotThrow(() -> {GameService.createGame(testGame, authToken);
         });
     }
-//
     @Test
     void createGame_Negative() {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
@@ -54,7 +44,6 @@ public class GameServiceTest {
         assertThrows(ResponseException.class, () -> {GameService.createGame(testGame, invalidAuthToken);
         });
     }
-
     @Test
     void joinGame_Postive() throws ResponseException, DataAccessException {
         int gameID = 1;
@@ -68,7 +57,6 @@ public class GameServiceTest {
         GameData updatedGameData = GameMemoryDAO.getGame(gameID);
         assertEquals(username, updatedGameData.whiteUsername());
     }
-
     @Test
     void joinGame_Negative() throws ResponseException, DataAccessException {
         String invalidColor = "INVALID_COLOR";
