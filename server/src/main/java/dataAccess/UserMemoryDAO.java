@@ -6,13 +6,25 @@ import java.util.Map;
 import java.util.UUID;
 
 public class UserMemoryDAO implements UserDAO {
-    public static Map<String, UserData> users=new HashMap<>();
+    public static Map<String, UserData> userData=new HashMap<>();
 
-    public static UserData getUser(String username) {
-        return users.get(username);
+    public void deleteAllUserData() {
+        userData.clear();
     }
 
-    public static String generateAuthToken(String username) {
-        return UUID.randomUUID().toString();
+    public String checkExistingUser(String username) {
+        if (!userData.containsKey(username)) {
+            return username;
+        } else {
+            return null;
+        }
+    }
+
+    public void createUser(UserData userRecord) {
+        userData.put(userRecord.username(), userRecord);
+    }
+
+    public UserData getUserByUsername(String username) {
+        return userData.get(username);
     }
 }

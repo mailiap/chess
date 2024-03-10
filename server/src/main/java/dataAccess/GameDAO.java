@@ -1,8 +1,17 @@
 package dataAccess;
 
+import exception.ResponseException;
 import model.GameData;
 
+import java.sql.Array;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+
 public interface GameDAO {
-static void getGame(int gameId) throws DataAccessException {};
-static void updateGame(int gameId, GameData updatedGame) throws DataAccessException {};
+    Collection<GameData> getGames() throws DataAccessException, SQLException;
+    int newGame(String username, String gameName) throws DataAccessException, SQLException;
+    GameData getGameByID(int gameId) throws DataAccessException;
+    void updatePlayerColor(int gameID, String username, String playerColor) throws DataAccessException, SQLException, ResponseException;
+    void deleteAllGameData() throws DataAccessException;
 }

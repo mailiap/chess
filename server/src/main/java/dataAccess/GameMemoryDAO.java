@@ -1,38 +1,64 @@
 package dataAccess;
 
+import exception.ResponseException;
+import model.AuthData;
 import model.GameData;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.*;
 
 public class GameMemoryDAO implements GameDAO{
-    public static Map<Integer, GameData> games=new HashMap<>();
-    private static int gameIdCounter = 1;
+    public static Map<Integer, GameData> gameData=new HashMap<>();
+    private static int gameIdCounter = 0;
 
-    public static GameData getGame(int gameId) {
-        return games.get(gameId);
+    public void deleteAllGameData() {
+        gameData.clear();
     }
 
-    public static void newGame (int gameId, GameData gameInfo) throws DataAccessException {
-        // add new game to map
-        if (!games.containsKey(gameId)) {
-            games.put(gameId, gameInfo);
+    public Collection<GameData> getGames() {
+        return gameData.values();
+    }
+
+    public int newGame(String username, String gameName) throws DataAccessException {
+        gameIdCounter++;
+        if (!gameData.containsKey(gameIdCounter)) {
+            GameData addGame = new GameData(gameIdCounter, null, null, gameName, null);
+            gameData.put(gameIdCounter, addGame);
         } else {
-            // throw exception
-            throw new DataAccessException("Game with ID " + gameId + " does not exist");
+            throw new DataAccessException("Game with ID " + gameIdCounter + " does not exist");
         }
+        return gameIdCounter;
     }
 
-    public static void updateGame (int gameId, GameData gameInfo) throws DataAccessException {
-        // update game in map
-        if (games.containsKey(gameId)) {
-            games.put(gameId, gameInfo);
-        } else {
-            // throw exception
-            throw new DataAccessException("Game with ID " + gameId + " does not exist");
-        }
+    public GameData getGameByID(int gameId) {
+        return gameData.get(gameId);
     }
 
-    public static int generateGameID() {
-        return gameIdCounter++;
+    public void updatePlayerColor(int gameID, String username, String playerColor) throws DataAccessException, ResponseException {
+        GameData oldGame = gameData.get(gameID);
+
+        if (playerColor != null) {
+            if ((playerColor.equals("WHITE") && oldGame.whiteUsername() != null) ||
+                    (playerColor.equals("BLACK") && oldGame.blackUsername() != null)) {
+                throw new ResponseException(403, "Error: already taken");
+            }
+
+            if (playerColor.equals("WHITE")) {
+                GameData newGame = new GameData(oldGame.gameID(), username, oldGame.blackUsername(), oldGame.gameName(), oldGame.game());
+                gameData.put(gameID, newGame);
+            } else if (playerColor.equals("BLACK")) {
+                GameData newGame = new GameData(oldGame.gameID(), oldGame.whiteUsername(), username, oldGame.gameName(), oldGame.game());
+                gameData.put(gameID, newGame);
+            }
+        }
+
+        if (playerColor == null) {
+            if (oldGame.whiteUsername() != null) {
+                GameData newGame = new GameData(oldGame.gameID(), playerColor, oldGame.blackUsername(), oldGame.gameName(), oldGame.game());
+                gameData.put(gameID, newGame);
+            } else {
+                GameData newGame = new GameData(oldGame.gameID(), oldGame.whiteUsername(), playerColor, oldGame.gameName(), oldGame.game());
+                gameData.put(gameID, newGame);
+            }
+        }
     }
 }

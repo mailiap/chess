@@ -3,55 +3,62 @@ package service;
 import dataAccess.*;
 import exception.ResponseException;
 import model.*;
+
+import java.sql.SQLException;
 import java.util.*;
 
 public class UserService {
 
-    public static Object register(UserData user) throws ResponseException, DataAccessException {
-        if ((user.username() == null) || user.password() == null || user.email() == null) {
+    AuthMemoryDAO authMemory = new AuthMemoryDAO();
+    UserMemoryDAO userMemory = new UserMemoryDAO();
+
+    public Object register(UserData userInput) throws ResponseException, DataAccessException {
+        if ((userInput.username() == null) || userInput.password() == null || userInput.email() == null) {
             throw new ResponseException(400, "Error: bad request");
         }
 
-        for (UserData existingUser : UserMemoryDAO.users.values()) {
-            if (existingUser.email().equals(user.email()) || (UserMemoryDAO.users.containsKey(user.username()))) {
-                throw new ResponseException(403, "Error: already taken");
-            }
+//            if (existingUser.email().equals(user.email())
+
+            String existingUser=userMemory.checkExistingUser(userInput.username());
+//            if (existingUser == null || userVal.email().equals(userInput.email())) {
+        if (existingUser == null) {
+
+            throw new ResponseException(403, "Error: already taken");
         }
 
-        String authToken= UserMemoryDAO.generateAuthToken(user.username());
-        AuthData authData=new AuthData(user.username(), authToken);
-        UserMemoryDAO.users.put(user.username(), user);
-        new AuthMemoryDAO().createAuth(authData);
-        return authData;
+        userMemory.createUser(userInput);
+        String authToken = authMemory.createAuthToken(userInput.username());
+        return new AuthData(userInput.username(), authToken);
     }
-    public static Object login(UserData user) throws DataAccessException, ResponseException {
-        UserData storedUser=UserMemoryDAO.users.get(user.username());
+    public Object login(UserData userInput) throws DataAccessException, ResponseException {
+        UserData user = userMemory.getUserByUsername(userInput.username());
 
-        if (storedUser == null || !storedUser.password().equals(user.password())) {
+        if (user == null || !user.password().equals(userInput.password())) {
             throw new ResponseException(401, "Error: unauthorized");
         }
 
-        String authToken=UserMemoryDAO.generateAuthToken(user.username());
-        AuthData authData=new AuthData(user.username(), authToken);
-        AuthMemoryDAO.createAuth(authData);
-        return authData;
+        String authToken = authMemory.createAuthToken(user.username());
+        return new AuthData(user.username(), authToken);
     }
-    public static void logout(String authToken) throws ResponseException {
+
+//    public static Object login(UserData user) throws DataAccessException, ResponseException {
+//        UserData storedUser=UserMemoryDAO.users.get(user.username());
+//
+//        if (storedUser == null || !storedUser.password().equals(user.password())) {
+//            throw new ResponseException(401, "Error: unauthorized");
+//        }
+//
+//        String authToken=UserMemoryDAO.generateAuthToken(user.username());
+//        AuthData authData=new AuthData(user.username(), authToken);
+//        AuthMemoryDAO.createAuth(authData);
+//        return authData;
+//    }
+
+    public void logout(String authToken) throws ResponseException {
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
         }
 
-        boolean authTokenFound=false;
-        for (AuthData authData : AuthMemoryDAO.authTokens.values()) {
-            if (authData.authToken().equals(authToken)) {
-                authTokenFound=true;
-                AuthMemoryDAO.authTokens.remove(authData.authToken());
-                break;
-            }
-        }
-
-        if (!authTokenFound) {
-            throw new ResponseException(401, "Error: unauthorized");
-        }
+        authMemory.deleteAuthToken(authToken);
     }
 }

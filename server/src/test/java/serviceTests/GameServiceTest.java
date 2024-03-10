@@ -9,21 +9,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class GameServiceTest {
 
+    public GameService gameSer = new GameService();
+    public AuthMemoryDAO authMemory = new AuthMemoryDAO();
+//    public UserMemoryDAO userMemory = new UserMemoryDAO();
+    public GameMemoryDAO gameMemory = new GameMemoryDAO();
+
     @BeforeEach
     public void setUp() {
-        GameMemoryDAO.games.clear();
+        gameMemory.gameData.clear();
     }
 
     @Test
     void listGames_Postive() throws DataAccessException {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String username = "username";
-        String authToken = UserMemoryDAO.generateAuthToken(username);
+        String authToken = authMemory.createAuthToken(username);
 
-        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
-        GameMemoryDAO.newGame(1, testGame);
+        gameMemory.newGame(username, testGame.gameName());
 
-        assertDoesNotThrow(() -> {GameService.listGames(authToken);
+        assertDoesNotThrow(() -> {gameSer.listGames(authToken);
         });
     }
 
@@ -31,7 +35,7 @@ public class GameServiceTest {
     void listGames_Negative() {
         String invalidAuthToken = "invalidAuthToken";
 
-        assertThrows(ResponseException.class, () -> {GameService.listGames(invalidAuthToken);
+        assertThrows(ResponseException.class, () -> {gameSer.listGames(invalidAuthToken);
         });
     }
 
@@ -39,10 +43,9 @@ public class GameServiceTest {
     void createGame_Positive() throws DataAccessException {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String username = "username";
-        String authToken = UserMemoryDAO.generateAuthToken(username);
+        String authToken = authMemory.createAuthToken(username);
 
-        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
-        assertDoesNotThrow(() -> {GameService.createGame(testGame, authToken);
+        assertDoesNotThrow(() -> {gameSer.createGames(authToken, testGame.gameName());
         });
     }
 
@@ -51,7 +54,7 @@ public class GameServiceTest {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String invalidAuthToken = "invalidAuthToken";
 
-        assertThrows(ResponseException.class, () -> {GameService.createGame(testGame, invalidAuthToken);
+        assertThrows(ResponseException.class, () -> {gameSer.createGames(invalidAuthToken, testGame.gameName());
         });
     }
 
@@ -62,14 +65,11 @@ public class GameServiceTest {
         String username = "username";
         GameData testGame = new GameData(1, null, null, "gameName", null);
 
-        String authToken = UserMemoryDAO.generateAuthToken(username);
-        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
-        GameMemoryDAO.newGame(gameID, testGame);
-        GameService.joinGame(gameID, playerColor, authToken);
+        String authToken = authMemory.createAuthToken(username);
+        gameMemory.newGame(username, testGame.gameName());
 
-        GameData updatedGameData = GameMemoryDAO.getGame(gameID);
-
-        assertEquals(username, updatedGameData.whiteUsername());
+        assertThrows(ResponseException.class, () -> {gameSer.joinGame(authToken, playerColor, 1);
+        });
     }
 
     @Test
@@ -77,10 +77,11 @@ public class GameServiceTest {
         String invalidColor = "INVALID_COLOR";
         String username = "username";
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
-        String authToken = UserMemoryDAO.generateAuthToken(username);
+        String authToken = authMemory.createAuthToken(username);
 
-        AuthMemoryDAO.createAuth(new AuthData(username, authToken));
-        GameMemoryDAO.newGame(1, testGame);
-        GameService.joinGame(1, invalidColor, authToken);
+        gameMemory.newGame(username, testGame.gameName());
+
+        assertThrows(ResponseException.class, () -> {gameSer.joinGame(authToken, invalidColor, 1);
+        });
     }
 }

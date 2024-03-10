@@ -5,18 +5,24 @@ import model.*;
 import dataAccess.*;
 import service.*;
 import org.junit.jupiter.api.*;
+import spark.QueryParamsMap;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
+
+    UserService userSer = new UserService();
+    UserMemoryDAO userMemory = new UserMemoryDAO();
+
     @BeforeEach
     public void setUp() {
-        UserMemoryDAO.users.clear();
+        userMemory.userData.clear();
     }
 
     @Test
     public void testRegister_Positive() throws ResponseException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
-        AuthData authData =(AuthData) UserService.register(userData);
+        AuthData authData =(AuthData) userSer.register(userData);
 
         assertNotNull(authData);
         assertNotNull(authData.authToken());
@@ -27,16 +33,16 @@ public class UserServiceTest {
     public void testRegister_Negative() throws ResponseException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
 
-        UserService.register(userData);
+        userSer.register(userData);
 
-        assertThrows(ResponseException.class, () -> UserService.register(userData));
+        assertThrows(ResponseException.class, () -> userSer.register(userData));
     }
 
     @Test
     public void testLogin_Positive() throws ResponseException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
-        UserService.register(userData);
-        AuthData authData =(AuthData) UserService.login(userData);
+        userSer.register(userData);
+        AuthData authData =(AuthData) userSer.login(userData);
 
         assertNotNull(authData);
         assertNotNull(authData.authToken());
@@ -48,24 +54,26 @@ public class UserServiceTest {
         UserData userData = new UserData("testUser", "password", "test@example.com");
         UserData invalidCredentials = new UserData("testUser", "wrongPassword", "test@example.com");
 
-        UserService.register(userData);
+        userSer.register(userData);
 
-        assertThrows(ResponseException.class, () -> UserService.login(invalidCredentials));
+        assertThrows(ResponseException.class, () -> userSer.login(invalidCredentials));
     }
 
     @Test
     public void testLogout_Positive() throws ResponseException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
 
-        UserService.register(userData);
-        AuthData authData =(AuthData) UserService.login(userData);
-        UserService.logout(authData.authToken());
+        userSer.register(userData);
+        AuthData authData =(AuthData) userSer.login(userData);
+        userSer.logout(authData.authToken());
 
-        assertNull(UserMemoryDAO.getUser(authData.authToken()));
+        assertNull(userMemory. getUserByUsername(authData.authToken()));
     }
     @Test
     public void testLogout_Negative() {
         UserData userData = new UserData("testUser", "password", "test@example.com");
-        assertThrows(ResponseException.class, () -> UserService.logout(userData.username()));
+
+        assertThrows(ResponseException.class, () -> userSer.logout(userData.username()));
+
     }
 }

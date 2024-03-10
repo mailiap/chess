@@ -1,13 +1,18 @@
 package service;
 
-import static dataAccess.GameMemoryDAO.games;
-import static dataAccess.UserMemoryDAO.users;
-import static dataAccess.AuthMemoryDAO.authTokens;
+import dataAccess.*;
 
 public class AuthService {
-    public static void deleteAllAuth() {
-        users.clear(); //clear users
-        games.clear(); //clear games
-        authTokens.clear(); //clear tokens
+
+    AuthMemoryDAO authMemory = new AuthMemoryDAO();
+    UserMemoryDAO userMemory = new UserMemoryDAO();
+    GameMemoryDAO gameMemory = new GameMemoryDAO();
+
+
+
+    public void clearDatabase() {
+        userMemory.deleteAllUserData(); //clear users
+        gameMemory.deleteAllGameData(); //clear games
+        authMemory.deleteAllAuthData(); // clear auths
     }
 }
