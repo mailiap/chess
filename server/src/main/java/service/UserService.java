@@ -17,12 +17,8 @@ public class UserService {
             throw new ResponseException(400, "Error: bad request");
         }
 
-//            if (existingUser.email().equals(user.email())
-
-            String existingUser=userMemory.checkExistingUser(userInput.username());
-//            if (existingUser == null || userVal.email().equals(userInput.email())) {
+        String existingUser=userMemory.checkExistingUser(userInput.username());
         if (existingUser == null) {
-
             throw new ResponseException(403, "Error: already taken");
         }
 

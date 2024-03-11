@@ -63,7 +63,6 @@ public class SQLGameDAO implements GameDAO {
     public GameData getGameByID(int gameId) throws DataAccessException, SQLException {
         GameData gameData = null;
         try (Connection conn = getConnection()) {
-
             try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT * from games WHERE gameID = ?")) {
                 preparedStatement.setInt(1, gameId);
                 ResultSet rs = preparedStatement.executeQuery();

@@ -51,7 +51,6 @@ public class GameService{
 
     public Object joinGame(String authToken, String playerColor, int gameID) throws ResponseException, DataAccessException {
         String username = authMemory.getUserByAuthToken(authToken);
-//        GameData game = gameMemory.getGameByID(gameID);
 
         if (authToken == null || authToken.isEmpty()) {
             throw new ResponseException(401, "Error: unauthorized");
