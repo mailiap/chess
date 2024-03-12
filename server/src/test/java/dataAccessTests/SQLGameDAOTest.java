@@ -57,10 +57,11 @@ public class SQLGameDAOTest {
     public void testGetGames_Positive() throws DataAccessException, SQLException {
         SQLGame.newGame("game1");
         SQLGame.newGame("game2");
+        SQLGame.newGame("game3");
 
         Collection<GameData> games = SQLGame.getGames();
 
-        assertEquals(2, games.size());
+        assertEquals(3, games.size());
     }
 
     @Test
