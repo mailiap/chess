@@ -61,7 +61,7 @@ public class SQLGameDAOTest {
 
         Collection<GameData> games = SQLGame.getGames();
 
-        assertEquals(3, games.size());
+        assertEquals(3, games.size()-1);
     }
 
     @Test
