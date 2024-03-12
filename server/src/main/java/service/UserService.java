@@ -37,16 +37,16 @@ public class UserService {
     }
 
     public Object login(UserData userInput) throws ResponseException, SQLException, DataAccessException {
-            UserData user=userMemory.getUserByUsername(userInput.username());
+        UserData user=userMemory.getUserByUsername(userInput.username());
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-            if (user == null || !encoder.matches(userInput.password(), user.password())) {
-                throw new ResponseException(401, "Error: unauthorized");
-            }
-
-            String authToken=authMemory.createAuthToken(user.username());
-            return new AuthData(user.username(), authToken);
+        if (user == null || !encoder.matches(userInput.password(), user.password())) {
+            throw new ResponseException(401, "Error: unauthorized");
         }
+
+        String authToken=authMemory.createAuthToken(user.username());
+        return new AuthData(user.username(), authToken);
+    }
 
     public void logout(String authToken) throws ResponseException {
         boolean authTokenFound;
@@ -62,7 +62,7 @@ public class UserService {
             if (!authTokenFound) {
                 throw new ResponseException(401, "Error: unauthorized");
             }
-//            authMemory.deleteAuthToken(authToken);
+
         } catch (SQLException e) {
             throw new ResponseException(500, e.getMessage());
         } catch (DataAccessException e) {

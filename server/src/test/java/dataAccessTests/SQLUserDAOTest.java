@@ -8,6 +8,7 @@ import model.UserData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.sql.SQLException;
 
@@ -56,7 +57,7 @@ public class SQLUserDAOTest {
 
         SQLUser.createUser(userData);
 
-        assertEquals(userData, SQLUser.getUserByUsername("testuser"));
+        assertNotNull(SQLUser.getUserByUsername("testuser"));
     }
 
     @Test
@@ -70,15 +71,16 @@ public class SQLUserDAOTest {
 
     @Test
     public void testGetUserByUsername_Positive() throws DataAccessException, SQLException {
-        UserData userData = new UserData("user1", "password1", "user1@example.com");
-        SQLUser.createUser(userData);
+        UserData expectedUser = new UserData("testuser", "password", "test@example.com");
+        SQLUser.createUser(expectedUser);
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-        UserData retrievedUserData = SQLUser.getUserByUsername("user1");
+        UserData actualUser = SQLUser.getUserByUsername("testuser");
 
-        assertNotNull(retrievedUserData);
-        assertEquals("user1", retrievedUserData.username());
-        assertEquals("password1", retrievedUserData.password());
-        assertEquals("user1@example.com", retrievedUserData.email());
+        assertNotNull(actualUser);
+        assertEquals(expectedUser.username(), actualUser.username());
+        assertTrue(encoder.matches(expectedUser.password(), actualUser.password()));
+        assertEquals(expectedUser.email(), actualUser.email());
     }
 
     @Test

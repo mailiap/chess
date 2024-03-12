@@ -53,7 +53,6 @@ public class SQLUserDAO implements UserDAO {
                 preparedStatement.setString(2, hashedPassword);
                 preparedStatement.setString(3, userRecord.email());
                 preparedStatement.executeUpdate();
-//                storeUserPassword(userRecord.username(), userRecord.password());
             }
         }
     }
@@ -68,14 +67,12 @@ public class SQLUserDAO implements UserDAO {
                     String password=rs.getString("password");
                     String email=rs.getString("email");
 
-//                    if (verifyUser(username, password)) {
-                        userData=new UserData(username, password, email);
-//                    }
+                    userData=new UserData(username, password, email);
                 }
             }
         }
-    return userData;
-}
+        return userData;
+    }
 
     private final String[] createStatements = {
             """
@@ -91,76 +88,14 @@ public class SQLUserDAO implements UserDAO {
 
     private void configureDatabase() throws ResponseException, DataAccessException {
         DatabaseManager.createDatabase();
-        try (var conn = getConnection()) {
+        try (var conn=getConnection()) {
             for (var statement : createStatements) {
-                try (var preparedStatement = conn.prepareStatement(statement)) {
+                try (var preparedStatement=conn.prepareStatement(statement)) {
                     preparedStatement.executeUpdate();
                 }
             }
         } catch (SQLException ex) {
             throw new ResponseException(500, String.format("Unable to configure database: %s", ex.getMessage()));
         }
-    }
-
-    void storeUserPassword(String username, String password) throws DataAccessException {
-        try (var conn=getConnection()) {
-            BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
-            String hashedPassword=encoder.encode(password);
-
-            String statment="UPDATE users SET hashed_password = ? WHERE username = ?";
-//        String statment = "INSERT INTO users (hashed_password) VALUES (?)";
-
-            try (var preparedStatement=conn.prepareStatement(statment)) {
-                preparedStatement.setString(1, hashedPassword);
-                preparedStatement.setString(2, username);
-                preparedStatement.executeUpdate();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-        boolean verifyUser (String username, String providedClearTextPassword) {
-            // read the previously hashed password from the database
-            String query="SELECT hashed_password FROM users WHERE username = ?";
-            String hashedPassword=null;
-
-            try (Connection conn=getConnection();
-                 PreparedStatement stmt=conn.prepareStatement(query)) {
-                stmt.setString(1, username);
-                ResultSet rs=stmt.executeQuery();
-                if (rs.next()) {
-                    hashedPassword=rs.getString("hashed_password");
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } catch (DataAccessException e) {
-                throw new RuntimeException(e);
-            }
-
-            BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
-
-            return encoder.matches(providedClearTextPassword, hashedPassword);
-        }
-
-    private String readHashedPasswordFromDatabase(String username) {
-        String query = "SELECT hashed_password FROM users WHERE username = ?";
-        String hashedPassword = null;
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                hashedPassword = rs.getString("hashed_password");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (DataAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return hashedPassword;
     }
 }

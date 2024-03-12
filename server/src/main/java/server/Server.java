@@ -35,6 +35,7 @@ public class Server {
 
     public void stop() {
         Spark.stop();
+        Spark.awaitStop();
     }
 
     private Object clearApplication(Request req, Response res) {
