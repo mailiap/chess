@@ -26,13 +26,13 @@ public class SQLAuthDAO implements AuthDAO {
     public String createAuthToken(String username) throws SQLException, DataAccessException {
         String authToken = UUID.randomUUID().toString();
         try (Connection conn = getConnection()) {
-            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO auths (authToken, username) VALUES(?, ?)")) {
-                preparedStatement.setString(1, authToken);
-                preparedStatement.setString(2, username);
-                preparedStatement.executeUpdate();
-                return authToken;
+            try (PreparedStatement insertStatement = conn.prepareStatement("INSERT INTO auths (authToken, username) VALUES (?, ?)")) {
+                insertStatement.setString(1, authToken);
+                insertStatement.setString(2, username);
+                insertStatement.executeUpdate();
             }
         }
+        return authToken;
     }
 
     public void deleteAuthToken(String authToken) throws DataAccessException, SQLException {
@@ -48,7 +48,7 @@ public class SQLAuthDAO implements AuthDAO {
     public String getUserByAuthToken(String authToken) throws DataAccessException, SQLException {
         String username = null;
         try (Connection conn=getConnection()) {
-            try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT username, authToken FROM auths WHERE authToken = ?")) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT username FROM auths WHERE authToken = ?")) {
                 preparedStatement.setString(1, authToken);
                 ResultSet rs = preparedStatement.executeQuery();
                 if (rs.next()) {
@@ -63,13 +63,11 @@ public class SQLAuthDAO implements AuthDAO {
     private final String[] createStatements = {
             """
     CREATE TABLE IF NOT EXISTS auths (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-                authToken VARCHAR(255) NOT NULL,
+                authToken VARCHAR(255) NOT NULL PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
-                UNIQUE(authToken),
-                UNIQUE(username)
-            )
-            """
+                UNIQUE(authToken)
+    )
+    """
     };
 
     private void configureDatabase() throws ResponseException, DataAccessException {

@@ -7,6 +7,8 @@ import service.*;
 import org.junit.jupiter.api.*;
 import spark.QueryParamsMap;
 
+import java.sql.SQLException;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
@@ -14,13 +16,16 @@ public class UserServiceTest {
     UserService userSer = new UserService();
     UserMemoryDAO userMemory = new UserMemoryDAO();
 
+    public UserServiceTest() throws ResponseException, SQLException, DataAccessException {
+    }
+
     @BeforeEach
     public void setUp() {
         userMemory.userData.clear();
     }
 
     @Test
-    public void testRegister_Positive() throws ResponseException, DataAccessException {
+    public void testRegister_Positive() throws ResponseException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
         AuthData authData =(AuthData) userSer.register(userData);
 
@@ -30,7 +35,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testRegister_Negative() throws ResponseException, DataAccessException {
+    public void testRegister_Negative() throws ResponseException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
 
         userSer.register(userData);
@@ -39,7 +44,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testLogin_Positive() throws ResponseException, DataAccessException {
+    public void testLogin_Positive() throws ResponseException, SQLException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
         userSer.register(userData);
         AuthData authData =(AuthData) userSer.login(userData);
@@ -50,7 +55,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testLogin_Negative() throws ResponseException, DataAccessException {
+    public void testLogin_Negative() throws ResponseException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
         UserData invalidCredentials = new UserData("testUser", "wrongPassword", "test@example.com");
 
@@ -60,7 +65,7 @@ public class UserServiceTest {
     }
 
     @Test
-    public void testLogout_Positive() throws ResponseException, DataAccessException {
+    public void testLogout_Positive() throws ResponseException, SQLException, DataAccessException {
         UserData userData = new UserData("testUser", "password", "test@example.com");
 
         userSer.register(userData);

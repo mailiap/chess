@@ -11,8 +11,10 @@ public class GameServiceTest {
 
     public GameService gameSer = new GameService();
     public AuthMemoryDAO authMemory = new AuthMemoryDAO();
-//    public UserMemoryDAO userMemory = new UserMemoryDAO();
     public GameMemoryDAO gameMemory = new GameMemoryDAO();
+
+    public GameServiceTest() throws ResponseException, DataAccessException {
+    }
 
     @BeforeEach
     public void setUp() {
@@ -25,7 +27,7 @@ public class GameServiceTest {
         String username = "username";
         String authToken = authMemory.createAuthToken(username);
 
-        gameMemory.newGame(username, testGame.gameName());
+        gameMemory.newGame(testGame.gameName());
 
         assertDoesNotThrow(() -> {gameSer.listGames(authToken);
         });
@@ -40,7 +42,7 @@ public class GameServiceTest {
     }
 
     @Test
-    void createGame_Positive() throws DataAccessException {
+    void createGame_Positive() {
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String username = "username";
         String authToken = authMemory.createAuthToken(username);
@@ -59,27 +61,27 @@ public class GameServiceTest {
     }
 
     @Test
-    void joinGame_Postive() throws ResponseException, DataAccessException {
+    void joinGame_Postive() throws DataAccessException {
         int gameID = 1;
         String playerColor = "WHITE";
         String username = "username";
         GameData testGame = new GameData(1, null, null, "gameName", null);
 
         String authToken = authMemory.createAuthToken(username);
-        gameMemory.newGame(username, testGame.gameName());
+        gameMemory.newGame(testGame.gameName());
 
         assertThrows(ResponseException.class, () -> {gameSer.joinGame(authToken, playerColor, 1);
         });
     }
 
     @Test
-    void joinGame_Negative() throws ResponseException, DataAccessException {
+    void joinGame_Negative() throws DataAccessException {
         String invalidColor = "INVALID_COLOR";
         String username = "username";
         GameData testGame = new GameData(1, "whiteUsername", "blackUsername", "gameName", null);
         String authToken = authMemory.createAuthToken(username);
 
-        gameMemory.newGame(username, testGame.gameName());
+        gameMemory.newGame(testGame.gameName());
 
         assertThrows(ResponseException.class, () -> {gameSer.joinGame(authToken, invalidColor, 1);
         });

@@ -2,6 +2,7 @@ package server;
 
 import com.google.gson.Gson;
 import dataAccess.AuthDAO;
+import dataAccess.DataAccessException;
 import dataAccess.UserMemoryDAO;
 import exception.ResponseException;
 import model.*;
@@ -9,12 +10,11 @@ import org.eclipse.jetty.security.PropertyUserStore;
 import org.eclipse.jetty.server.Authentication;
 import service.*;
 import spark.*;
+
+import java.sql.SQLException;
 import java.util.*;
 
 public class Server {
-    AuthService authSer =new AuthService();
-    GameService gameSer =new GameService();
-    UserService userSer =new UserService();
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
@@ -39,7 +39,7 @@ public class Server {
 
     private Object clearApplication(Request req, Response res) {
         try {
-            authSer.clearDatabase();
+            new AuthService().clearDatabase();
             return "{}"; // return 200
         } catch (Exception e) { //returns 500
             res.status(500);
@@ -53,7 +53,7 @@ public class Server {
             Gson serializer = new Gson();
             UserData userDataRequest = serializer.fromJson(jsonString, UserData.class);
 
-            Object result = userSer.register(userDataRequest);
+            Object result = new UserService().register(userDataRequest);
 
             return serializer.toJson(result); // return 200
         } catch (ResponseException e) {
@@ -72,7 +72,7 @@ public class Server {
             LoginRequest userLoginRequest = serializer.fromJson(jsonString, LoginRequest.class);
             UserData userDataRequest = new UserData(userLoginRequest.username(), userLoginRequest.password(), null);
 
-            Object result = userSer.login(userDataRequest);
+            Object result = new UserService().login(userDataRequest);
 
             return serializer.toJson(result); //returns 200
         } catch (ResponseException e) {
@@ -88,7 +88,7 @@ public class Server {
         try {
             String authToken = req.headers("Authorization");
 
-            userSer.logout(authToken);
+            new UserService().logout(authToken);
 
             return "{}"; //returns 200
         } catch (ResponseException e) {
@@ -104,7 +104,7 @@ public class Server {
         try {
             String authToken = req.headers("Authorization");
 
-            List<GameData> games = gameSer.listGames(authToken);
+            List<GameData> games = new GameService().listGames(authToken);
             String result = new Gson().toJson(Map.of("games", games));
 
             return result; //returns 200
@@ -125,7 +125,7 @@ public class Server {
             GameData createGameRequest = serializer.fromJson(jsonString, GameData.class);
             String gameName = createGameRequest.gameName();
 
-            Object result = gameSer.createGames(authToken, gameName);
+            Object result = new GameService().createGames(authToken, gameName);
 
             return serializer.toJson(result); //returns 200
         } catch (ResponseException e) {
@@ -147,7 +147,7 @@ public class Server {
             int gameID = joinGameRequest.gameID();
             String playerColor= joinGameRequest.playerColor();
 
-            gameSer.joinGame(authToken, playerColor, gameID);
+            new GameService().joinGame(authToken, playerColor, gameID);
 
             return "{}"; //returns 200
         } catch (ResponseException e) {

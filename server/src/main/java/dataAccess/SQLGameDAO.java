@@ -10,9 +10,12 @@ import java.util.*;
 import static dataAccess.DatabaseManager.getConnection;
 
 public class SQLGameDAO implements GameDAO {
+    private Gson gson;
+
 
     public SQLGameDAO() throws ResponseException, DataAccessException {
         configureDatabase();
+        gson = new Gson();
     }
 
     public void deleteAllGameData() throws DataAccessException, SQLException {
@@ -36,8 +39,8 @@ public class SQLGameDAO implements GameDAO {
                     String whiteUsername = rs.getString("whiteUsername");
                     String blackUsername = rs.getString("blackUsername");
                     String gameName = rs.getString("gameName");
-                    ChessGame game = new ChessGame();
-                    gameDataList.add(new GameData(gameId, whiteUsername, blackUsername, gameName, game));
+//                    ChessGame game = new ChessGame();
+                    gameDataList.add(new GameData(gameId, whiteUsername, blackUsername, gameName, null));
                 }
             }
         }
@@ -45,17 +48,17 @@ public class SQLGameDAO implements GameDAO {
     }
 
 
-    public int newGame(String username, String gameName) throws DataAccessException, SQLException {
-        if (username == null || gameName == null) {
-            throw new SQLException();
-        }
+    public int newGame(String gameName) throws DataAccessException, SQLException {
         try (Connection conn = getConnection()) {
-            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO games (whiteUsername, gameName) VALUES(?, ?)")) {
-                preparedStatement.setString(1, username);
-                preparedStatement.setString(2, gameName);
-                int result = preparedStatement.executeUpdate();
-                updateGameID(result);
-                return result;
+            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO games (gameName) VALUES(?)",Statement.RETURN_GENERATED_KEYS)) {
+                preparedStatement.setString(1, gameName);
+                preparedStatement.executeUpdate();
+
+                ResultSet rs = preparedStatement.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+                return 0;
             }
         }
     }
@@ -84,12 +87,21 @@ public class SQLGameDAO implements GameDAO {
     public void updatePlayerColor(int gameID, String username, String playerColor) throws DataAccessException, SQLException {
         var conn = getConnection();
         try {
-            var statement = "UPDATE games SET " + (playerColor.equals("WHITE") ? "whiteUsername" : "blackUsername") + " = ? WHERE gameID = ?";
+            String statement;
+            if (playerColor != null && playerColor.equals("WHITE")) {
+                statement = "UPDATE games SET whiteUsername = ? WHERE gameID = ?";
+            } else if (playerColor != null && playerColor.equals("BLACK")) {
+                statement = "UPDATE games SET blackUsername = ? WHERE gameID = ?";
+            } else {
+                statement = "UPDATE games SET whiteUsername = ?, blackUsername = ? WHERE gameID = ?";
+            }
             try (var preparedStatement = conn.prepareStatement(statement)) {
-                preparedStatement.setString(1, username);
-                preparedStatement.setInt(2, gameID);
+                if (playerColor.equals("WHITE") || playerColor.equals("BLACK")) {
+                    preparedStatement.setString(1, username);
+                    preparedStatement.setInt(2, gameID);
+                }
                 int rowsAffected = preparedStatement.executeUpdate();
-//                System.out.println(rowsAffected + " row(s) updated successfully.");
+                // System.out.println(rowsAffected + " row(s) updated successfully.");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -99,15 +111,13 @@ public class SQLGameDAO implements GameDAO {
     private final String[] createStatements = {
             """
     CREATE TABLE IF NOT EXISTS games (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(255) NOT NULL,
-                gameID INT,
-                whiteUsername VARCHAR(255),
-                blackUsername VARCHAR(255),
-                gameName VARCHAR(255),
-                game JSON
-            )
-            """
+        gameID INT AUTO_INCREMENT PRIMARY KEY,
+           whiteUsername VARCHAR(255),
+           blackUsername VARCHAR(255),
+           gameName VARCHAR(255),
+           game JSON
+    )
+    """
     };
 
     private void configureDatabase() throws ResponseException, DataAccessException {

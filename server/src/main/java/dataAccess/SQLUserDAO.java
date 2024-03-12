@@ -25,23 +25,36 @@ public class SQLUserDAO implements UserDAO {
     }
 
     public String checkExistingUser(String username) {
-        return null;
+        String existingUser = null;
+        try (Connection conn=getConnection()) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT username FROM users WHERE username = ?")) {
+                preparedStatement.setString(1, username);
+                ResultSet rs = preparedStatement.executeQuery();
+                if (rs.next()) {
+                    existingUser = rs.getString("username");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (DataAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return existingUser;
     }
 
     public void createUser(UserData userRecord) throws DataAccessException, SQLException {
-        var conn=getConnection();
-        try {
+        try (var conn=getConnection()) {
             var statement="INSERT INTO users (username, password, email) VALUES (?, ?, ?)";
             try (var preparedStatement=conn.prepareStatement(statement)) {
+                BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
+                String hashedPassword=encoder.encode(userRecord.password());
+
                 preparedStatement.setString(1, userRecord.username());
-                preparedStatement.setString(2, userRecord.password());
+                preparedStatement.setString(2, hashedPassword);
                 preparedStatement.setString(3, userRecord.email());
                 preparedStatement.executeUpdate();
-
-                storeUserPassword(conn, userRecord.username(), userRecord.password());
+//                storeUserPassword(userRecord.username(), userRecord.password());
             }
-        } finally {
-            conn.close();
         }
     }
 
@@ -52,12 +65,12 @@ public class SQLUserDAO implements UserDAO {
                 preparedStatement.setString(1, username);
                 ResultSet rs=preparedStatement.executeQuery();
                 if (rs.next()) {
-                    String hashedPassword=rs.getString("password");
+                    String password=rs.getString("password");
                     String email=rs.getString("email");
 
-                    if (verifyUser(username, hashedPassword)) {
-                        userData=new UserData(username, hashedPassword, email);
-                    }
+//                    if (verifyUser(username, password)) {
+                        userData=new UserData(username, password, email);
+//                    }
                 }
             }
         }
@@ -67,10 +80,8 @@ public class SQLUserDAO implements UserDAO {
     private final String[] createStatements = {
             """
     CREATE TABLE IF NOT EXISTS users (
-         id INT AUTO_INCREMENT PRIMARY KEY,
              username VARCHAR(255) NOT NULL,
              password VARCHAR(255) NOT NULL,
-             hashed_password VARCHAR(255) NOT NULL,
              email VARCHAR(255) NOT NULL,
              UNIQUE(username),
              UNIQUE(email)
@@ -91,34 +102,48 @@ public class SQLUserDAO implements UserDAO {
         }
     }
 
-    void storeUserPassword(Connection conn, String username, String password) throws DataAccessException {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String hashedPassword = encoder.encode(password);
+    void storeUserPassword(String username, String password) throws DataAccessException {
+        try (var conn=getConnection()) {
+            BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
+            String hashedPassword=encoder.encode(password);
 
-        // write the hashed password in database along with the user's other information
-        writeHashedPasswordToDatabase(conn, username, hashedPassword);
-    }
+            String statment="UPDATE users SET hashed_password = ? WHERE username = ?";
+//        String statment = "INSERT INTO users (hashed_password) VALUES (?)";
 
-    boolean verifyUser(String username, String providedClearTextPassword) {
-        // read the previously hashed password from the database
-        var hashedPassword = readHashedPasswordFromDatabase(username);
-
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        return encoder.matches(providedClearTextPassword, hashedPassword);
-    }
-
-    private void writeHashedPasswordToDatabase(Connection conn, String username, String hashedPassword) throws DataAccessException {
-//        var conn = getConnection();
-        String statment = "UPDATE users SET hashed_password = ? WHERE username = ?";
-
-        try (var preparedStatement=conn.prepareStatement(statment)) {
-            preparedStatement.setString(1, hashedPassword);
-            preparedStatement.setString(2, username);
-            preparedStatement.executeUpdate();
+            try (var preparedStatement=conn.prepareStatement(statment)) {
+                preparedStatement.setString(1, hashedPassword);
+                preparedStatement.setString(2, username);
+                preparedStatement.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
+
+        boolean verifyUser (String username, String providedClearTextPassword) {
+            // read the previously hashed password from the database
+            String query="SELECT hashed_password FROM users WHERE username = ?";
+            String hashedPassword=null;
+
+            try (Connection conn=getConnection();
+                 PreparedStatement stmt=conn.prepareStatement(query)) {
+                stmt.setString(1, username);
+                ResultSet rs=stmt.executeQuery();
+                if (rs.next()) {
+                    hashedPassword=rs.getString("hashed_password");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } catch (DataAccessException e) {
+                throw new RuntimeException(e);
+            }
+
+            BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
+
+            return encoder.matches(providedClearTextPassword, hashedPassword);
+        }
 
     private String readHashedPasswordFromDatabase(String username) {
         String query = "SELECT hashed_password FROM users WHERE username = ?";

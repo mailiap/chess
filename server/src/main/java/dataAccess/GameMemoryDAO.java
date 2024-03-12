@@ -26,7 +26,7 @@ public class GameMemoryDAO implements GameDAO {
         return gameData.values();
     }
 
-    public int newGame(String username, String gameName) throws DataAccessException {
+    public int newGame(String gameName) throws DataAccessException {
         gameIdCounter++;
         if (!gameData.containsKey(gameIdCounter)) {
             GameData addGame=new GameData(gameIdCounter, null, null, gameName, null);
