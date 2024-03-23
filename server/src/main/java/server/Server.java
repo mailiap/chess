@@ -11,6 +11,7 @@ import org.eclipse.jetty.server.Authentication;
 import service.*;
 import spark.*;
 
+import java.sql.Array;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -106,9 +107,8 @@ public class Server {
             String authToken = req.headers("Authorization");
 
             List<GameData> games = new GameService().listGames(authToken);
-            String result = new Gson().toJson(Map.of("games", games));
 
-            return result; //returns 200
+            return new Gson().toJson(new ArrayList<>(games)); // returns 200
         } catch (ResponseException e) {
             res.status(e.getStatusCode());
             return "{\"message\": \"" + e.getMessage() + "\"}"; //returns 401
@@ -148,9 +148,7 @@ public class Server {
             int gameID = joinGameRequest.gameID();
             String playerColor= joinGameRequest.playerColor();
 
-            new GameService().joinGame(authToken, playerColor, gameID);
-
-            return "{}"; //returns 200
+            return new GameService().joinGame(authToken, playerColor, gameID); //returns 200
         } catch (ResponseException e) {
             res.status(e.getStatusCode());
             return "{\"message\": \"" + e.getMessage() + "\"}"; //returns 401, 403

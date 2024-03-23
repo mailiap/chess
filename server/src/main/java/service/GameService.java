@@ -94,11 +94,11 @@ public class GameService {
             }
 
             if (playerColor == null) {
-                return Map.of("", "");
+                return "";
             }
 
             gameMemory.updatePlayerColor(gameID, username, playerColor);
-            return Map.of("", "");
+            return "";
 
         } catch (SQLException e) {
             throw new ResponseException(500, "Error: something went wrong");
