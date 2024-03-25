@@ -40,7 +40,7 @@ public class ServerFacadeTests {
     public void testClearApplication_Negative() {
         server.stop(); // Stop server to simulate network error
         assertThrows(ResponseException.class, () -> facade.clearApplication());
-        server.run(8080); // Restart server after test
+        server.run(0); // Restart server after test
     }
 
     @Test
