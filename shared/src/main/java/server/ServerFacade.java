@@ -66,7 +66,7 @@ public class ServerFacade {
             URL url = (new URI(serverUrl + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod(method);
-//            http.setReadTimeout(50000000);
+            http.setReadTimeout(5000);
             http.setDoOutput(true);
 
             if (authToken != null) {

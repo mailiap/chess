@@ -139,7 +139,7 @@ public class ChessClient {
         server.logout();
         state = State.SIGNEDOUT;
         System.out.println(SET_TEXT_COLOR_GREEN);
-        return String.format("%s has been logged out\n", username);
+        return String.format("%s has been logged out.\n", username);
     }
 
     public String quit() {
@@ -152,16 +152,16 @@ public class ChessClient {
         if (state == State.SIGNEDOUT) {
             return """ 
                     register <USERNAME> <PASSWORD> <EMAIL> - to create an account
-                    login <USERNAME> <PASSWORD> - to play chess 
+                    login <USERNAME> <PASSWORD> - to play chess
                     quit - playing chess
                     help - with possible commands
                     """;
         }
         return """
                 create ‹NAME> - a game
-                list - games 
+                list - games
                 join <ID> [WHITE|BLACK|<empty>] - a game
-                observe ‹ID> - a game 
+                observe ‹ID> - a game
                 logout - when you are done 
                 quit - playing chess
                 help - with possible commands
