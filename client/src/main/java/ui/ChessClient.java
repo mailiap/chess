@@ -109,7 +109,7 @@ public class ChessClient {
                 result.append((i + 1)).append(". ").append(games[i].gameName()).append('\n');
             }
         }
-        return SET_TEXT_COLOR_YELLOW + result.toString();
+        return SET_TEXT_COLOR_YELLOW + result;
     }
     
     public String joinGame(String... params) throws ResponseException {

@@ -16,7 +16,7 @@ public class GameplayUI {
     private static String[] headers = { " a ", " b ", " c ", " d ", " e ", " f ", " g ", " h " };
     private static boolean atBottom = true;
 
-    public void run() {
+    public static void run() {
         var out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
 
         out.print(ERASE_SCREEN);
@@ -185,9 +185,9 @@ public class GameplayUI {
             if (squareRow == 1) {
                 if (atBottom) {
                     drawColumn(out, column-1);
-                    } else {
-                        drawColumn(out, reverseColumn+1);
-                    }
+                } else {
+                    drawColumn(out, reverseColumn+1);
+                }
             } else {
                 drawBorder(out);
             }
@@ -278,8 +278,10 @@ public class GameplayUI {
 
     private static void printPlayer(PrintStream out, String player, int boardRow, String pieceColor) {
         if (pieceColor == "WHITE") {
+            out.print(SET_TEXT_BOLD);
             out.print(SET_TEXT_COLOR_BLUE);
         } else {
+            out.print(SET_TEXT_BOLD);
             out.print(SET_TEXT_COLOR_RED);
         }
         out.print(player);

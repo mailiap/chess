@@ -2,6 +2,7 @@ import chess.*;
 
 import server.Server;
 import exception.ResponseException;
+import ui.GameplayUI;
 import ui.Repl;
 
 import java.io.IOException;
@@ -18,6 +19,9 @@ public class Main {
         if (args.length == 1) {
             serverUrl = args[0];
         }
+        System.out.println();
+        new GameplayUI().run();
+        System.out.println();
         new Repl(serverUrl).run();
     }
 }

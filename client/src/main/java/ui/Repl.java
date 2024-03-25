@@ -15,7 +15,7 @@ public class Repl {
     }
 
     public void run() throws ResponseException, IOException, URISyntaxException {
-        System.out.println(SET_TEXT_COLOR_MAGENTA + WHITE_QUEEN + "Welcome to the chess game. Sign in to start.\n");
+        System.out.println(SET_TEXT_COLOR_MAGENTA + " ♕ " + "Welcome to the chess game. Sign in to start.");
         System.out.println(RESET_TEXT_COLOR);
         System.out.print(client.help());
 
