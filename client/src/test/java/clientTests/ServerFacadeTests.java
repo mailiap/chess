@@ -14,6 +14,7 @@ public class ServerFacadeTests {
     private static Server server;
     static ServerFacade facade;
 
+
     @BeforeAll
     public static void init() {
         server = new Server();
