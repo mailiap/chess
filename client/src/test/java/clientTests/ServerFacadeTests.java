@@ -14,16 +14,15 @@ public class ServerFacadeTests {
     private static Server server;
     static ServerFacade facade;
 
-
     @BeforeAll
     public static void init() {
         server = new Server();
-        var port = server.run(0);
-        System.out.println("Started test HTTP server on " + port);
-        facade = new ServerFacade("http://localhost:" + port);
+        server.run(0);
+        System.out.println("Started test HTTP server on " + server.port());
+        facade = new ServerFacade("http://localhost:" + server.port());
     }
 
-    @BeforeEach
+    @AfterEach
     public void tearDown() throws ResponseException {
         facade.clearApplication();
     }
@@ -39,9 +38,8 @@ public class ServerFacadeTests {
 
     @Test
     public void testClearApplication_Negative() {
-        server.stop(); // Stop server to simulate network error
-        assertThrows(ResponseException.class, () -> facade.clearApplication());
-        server.run(0); // Restart server after test
+        ServerFacade facade = new ServerFacade("http://localhost:" + -1);
+        assertThrows(ResponseException.class, facade::clearApplication);
     }
 
     @Test

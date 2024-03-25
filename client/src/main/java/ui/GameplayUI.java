@@ -86,7 +86,7 @@ public class GameplayUI {
                 setMagenta(out);
                 out.print(EMPTY.repeat(suffixLength));
 
-                if (boardCol == 0) { // Change condition for the last column
+                if (boardCol == 0) {
                     setMagenta(out);
                     out.print(EMPTY.repeat(LINE_WIDTH_IN_CHARS));
                 }
