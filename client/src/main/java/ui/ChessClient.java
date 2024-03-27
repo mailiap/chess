@@ -1,9 +1,5 @@
 package ui;
 
-import chess.ChessGame;
-import chess.ChessPiece;
-import chess.ChessPosition;
-import com.google.gson.Gson;
 import exception.ResponseException;
 import model.AuthData;
 import model.GameData;
@@ -12,9 +8,7 @@ import server.ServerFacade;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
 
 import static ui.EscapeSequences.*;
@@ -99,14 +93,23 @@ public class ChessClient {
 
     public String listGames() throws ResponseException {
         assertSignedIn();
-        GameData[] games = server.listGames();
-        StringBuilder result = new StringBuilder();
+        GameData[] games=server.listGames();
+        StringBuilder result=new StringBuilder();
         if (games.length == 0) {
             result.append("No games available.");
         } else {
+            System.out.print(SET_TEXT_COLOR_YELLOW);
             result.append("Games:\n");
-            for (int i = 0; i < games.length; i++) {
-                result.append((i + 1)).append(". ").append(games[i].gameName()).append('\n');
+            for (int i=0; i < games.length; i++) {
+                if (games[i].whiteUsername() == null && games[i].blackUsername() != null) {
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + username + "'").append("\n\n");
+                } else if (games[i].whiteUsername() != null && games[i].blackUsername() == null) {
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + username + "'").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty").append("\n\n");
+                } else if (games[i].whiteUsername() == null && games[i].blackUsername() == null) {
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty").append("\n\n");
+                } else {
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + username + "'").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + username + "'").append("\n\n");
+                }
             }
         }
         return SET_TEXT_COLOR_YELLOW + result;
@@ -138,7 +141,7 @@ public class ChessClient {
         assertSignedIn();
         server.logout();
         state = State.SIGNEDOUT;
-        System.out.println(SET_TEXT_COLOR_GREEN);
+        System.out.print(SET_TEXT_COLOR_GREEN);
         return String.format("%s has been logged out.\n", username);
     }
 

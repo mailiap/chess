@@ -21,12 +21,14 @@ public class Repl {
 
         Scanner scanner=new Scanner(System.in);
         var result="";
-        while (!result.equals("quit")) {
+        var quit="";
+        while (!quit.equals("quit")) {
             System.out.print("\n" + RESET_TEXT_COLOR + ">>> ");
             String line=scanner.nextLine();
 
             try {
                 result = client.eval(line);
+                quit = line;
                 System.out.print(result);
             } catch (Throwable e) {
                 var msg=e.toString();
