@@ -59,7 +59,6 @@ public class SQLAuthDAO implements AuthDAO {
         return username;
     }
 
-
     private final String[] createStatements = {
             """
     CREATE TABLE IF NOT EXISTS auths (

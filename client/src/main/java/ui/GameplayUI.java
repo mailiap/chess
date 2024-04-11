@@ -1,289 +1,178 @@
 package ui;
 
+import chess.ChessGame;
+import com.google.gson.Gson;
+import dataAccess.DataAccessException;
+import dataAccess.GameDAO;
+import dataAccess.SQLAuthDAO;
+import dataAccess.SQLGameDAO;
+import exception.ResponseException;
+import model.GameData;
+import webSocketMessages.serverMessages.ServerMessage;
+import webSocketMessages.userCommands.Leave;
+import websocket.GameHandler;
+import websocket.WebSocketFacade;
+
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Scanner;
 
 import static ui.EscapeSequences.*;
 
-public class GameplayUI {
+public class GameplayUI implements GameHandler {
+    private String playerColor = "";
+    private int inputGameID = 0;
+    private String command = "";
+    private String authToken = "";
+    private final Scanner scanner;
+    private DrawGameBoard gameBoard;
+    private String serverUrl;
+    private GameHandler gameHandler;
+    private WebSocketFacade wsFacade;
 
-    private static final int BOARD_SIZE_IN_SQUARES = 8;
-    private static final int SQUARE_SIZE_IN_CHARS = 3;
-    private static final int LINE_WIDTH_IN_CHARS = 1;
-    private static int column = 1;
-    private static int reverseColumn = 8;
+    public GameplayUI(String serverUrl, GameHandler gameHandler) {
+        this.scanner = new Scanner(System.in);
+        this.gameBoard = new DrawGameBoard();
+        this.serverUrl=serverUrl;
+        this.gameHandler=gameHandler;
+    }
 
-    private static String[] headers = { " a ", " b ", " c ", " d ", " e ", " f ", " g ", " h " };
-    private static boolean atBottom = true;
+    public String run(String input) throws ResponseException, SQLException, DataAccessException {
+        var inputTokens=input.toLowerCase().split(" ");
+        var inputParams=Arrays.copyOfRange(inputTokens, 0, inputTokens.length);
 
-    public static void run() {
-        var out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
+        inputGameID =Integer.parseInt(inputParams[0]);
+        if (inputParams.length < 3) {
+            playerColor = inputParams[1].toUpperCase();
+        } else {
+            authToken = inputParams[1];
+            playerColor = inputParams[2].toUpperCase();
+        }
+
+
+        redraw(playerColor);
+
+        System.out.print("\n" + RESET_TEXT_COLOR + help());
+//        var command = "";
+        while (!command.contains("leave")) {
+
+            System.out.print("\n" + RESET_TEXT_COLOR + ">>> ");
+            command=scanner.nextLine().trim().toLowerCase();
+            var tokens=command.toLowerCase().split(" ");
+            var choice=(tokens.length > 0) ? tokens[0] : "help";
+            var params=Arrays.copyOfRange(tokens, 0, tokens.length);
+
+            switch (choice) {
+                case "help" -> System.out.print(help());
+                case "redraw" -> System.out.print(redraw(playerColor));
+                case "leave" -> System.out.print(leave(params));
+                case "move" -> System.out.print(move());
+                case "resign" -> System.out.print(resign());
+                case "highlight" -> System.out.print(highlight());
+                default -> System.out.print("Unexpected value: " + command + "\n");
+            }
+        }
+        return "";
+    }
+
+    public String help() {
+        return """
+                help
+                redraw
+                leave <ID>
+                move <ID> <MOVE>
+                resign <ID>
+                highlight <PIECE>
+                """;
+    }
+
+    public String redraw(String playerColor) {
+        boolean teamTurn = false;
+
+        if (playerColor.equals("WHITE") || playerColor.equals("NULL")) {
+            teamTurn = true;
+        }
+
+        var out = new PrintStream(System.out, teamTurn, StandardCharsets.UTF_8);
 
         out.print(ERASE_SCREEN);
 
-        drawChessboard(out, true);
+        gameBoard.drawChessboard(out, teamTurn);
 
-        drawHeader(out, headers);
+        gameBoard.drawHeader(out);
 
-        out.println();
-        out.println();
-        out.println();
-        out.println();
+        if (playerColor.equals("WHITE")) {
+            System.out.println(SET_TEXT_COLOR_BLUE);
+            System.out.println(String.format("You are on the " + playerColor + " team"));
 
-        drawChessboard(out, false);
-
-        drawHeader(out, headers);
-    }
-
-    private static void drawBorder(PrintStream out) {
-        for (int boardCol = 0; boardCol < BOARD_SIZE_IN_SQUARES; ++boardCol) {
-
-            if (boardCol == BOARD_SIZE_IN_SQUARES - 1) {
-                setMagenta(out);
-                out.print(EMPTY.repeat(LINE_WIDTH_IN_CHARS));
-            }
         }
-    }
+        else if (playerColor.equals("BLACK")){
+            System.out.println(SET_TEXT_COLOR_RED);
+            System.out.println(String.format("You are on the " + playerColor + " team"));
 
-    private static void drawHeader(PrintStream out, String[] headers) {
-        column=1;
-        reverseColumn=8;
-        setMagenta(out);
-        drawBorder(out);
-
-        if (!atBottom) {
-            for (int boardCol=0; boardCol < BOARD_SIZE_IN_SQUARES; ++boardCol) {
-                int prefixLength=SQUARE_SIZE_IN_CHARS / 2;
-                int suffixLength=SQUARE_SIZE_IN_CHARS - prefixLength - 1;
-
-                setMagenta(out);
-                out.print(EMPTY.repeat(prefixLength));
-                out.print(SET_TEXT_COLOR_BLACK);
-
-                out.print(headers[boardCol]);
-
-                setMagenta(out);
-                out.print(EMPTY.repeat(suffixLength));
-
-                if (boardCol == BOARD_SIZE_IN_SQUARES - 1) {
-                    setMagenta(out);
-                    out.print(EMPTY.repeat(LINE_WIDTH_IN_CHARS));
-                }
-            }
-            resetAll(out);
-            out.println();
-        } else {
-            for (int boardCol=BOARD_SIZE_IN_SQUARES - 1; boardCol >= 0; --boardCol) {
-                int prefixLength=SQUARE_SIZE_IN_CHARS / 2;
-                int suffixLength=SQUARE_SIZE_IN_CHARS - prefixLength - 1;
-
-                setMagenta(out);
-                out.print(EMPTY.repeat(prefixLength));
-                out.print(SET_TEXT_COLOR_BLACK);
-
-                out.print(headers[boardCol]);
-
-                setMagenta(out);
-                out.print(EMPTY.repeat(suffixLength));
-
-                if (boardCol == 0) {
-                    setMagenta(out);
-                    out.print(EMPTY.repeat(LINE_WIDTH_IN_CHARS));
-                }
-            }
-            resetAll(out);
-            out.println();
         }
-    }
-
-    private static void drawColumn(PrintStream out, int column) {
-        setMagenta(out);
-        out.print(SET_TEXT_COLOR_BLACK);
-        out.print(" " + column + " ");
-    }
-
-    private static void drawChessboard(PrintStream out, boolean whiteAtBottom) {
-        atBottom=whiteAtBottom;
-
-        drawHeader(out, headers);
-
-        String[] chessPiecesWhite={WHITE_ROOK, WHITE_KNIGHT, WHITE_BISHOP, WHITE_QUEEN, WHITE_KING, WHITE_BISHOP, WHITE_KNIGHT, WHITE_ROOK};
-        String[] pawnPiecesWhite={WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN, WHITE_PAWN};
-        String[] chessPiecesBlack={BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_QUEEN, BLACK_KING, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK};
-        String[] pawnPiecesBlack={BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN, BLACK_PAWN};
-
-        if (whiteAtBottom) {
-            drawRowOfSquares(out, chessPiecesBlack, 0,"BLACK");
-            drawRowOfSquares(out, pawnPiecesBlack, 1, "BLACK");
-            for (int i=0; i < 4; i++) {
-                drawEmptyRow(out, i);
-            }
-            drawRowOfSquares(out, pawnPiecesWhite, 6, "WHITE");
-            drawRowOfSquares(out, chessPiecesWhite, 7, "WHITE");
-        } else {
-            drawRowOfSquares(out, chessPiecesWhite, 0, "WHITE");
-            drawRowOfSquares(out, pawnPiecesWhite, 1, "WHITE");
-            for (int i=0; i < 4; i++) {
-                drawEmptyRow(out, i);
-            }
-            drawRowOfSquares(out, pawnPiecesBlack, 6, "BLACK");
-            drawRowOfSquares(out, chessPiecesBlack, 7, "BLACK");
+        else if (playerColor.equals("NULL")){
+            System.out.println(SET_TEXT_COLOR_YELLOW);
+            System.out.println(String.format("You are an observer."));
         }
+
+        return "";
     }
 
-    private static void drawRowOfSquares(PrintStream out, String[] playerPieces, int boardRow, String pieceColor) {
-        for (int squareRow = 0; squareRow < SQUARE_SIZE_IN_CHARS; ++squareRow) {
-            for (int boardCol = 0; boardCol < BOARD_SIZE_IN_SQUARES; ++boardCol) {
-                boolean isEvenRow=boardRow % 2 == 0;
-                boolean isEvenCol=boardCol % 2 == 0;
-                boolean isLightSquare=(isEvenRow && isEvenCol) || (!isEvenRow && !isEvenCol);
-                String color=null;
+    public String leave(String... params) throws ResponseException, DataAccessException, SQLException {
+        if (params.length != 1) {
+            int gameID =Integer.parseInt(params[1]);
 
-                if (squareRow != 1 && boardCol == 0) {
-                    drawBorder(out);
+            if (inputGameID == gameID) {
+                if (!authToken.isEmpty()) {
+                    new SQLGameDAO().updatePlayerColor(gameID, null, playerColor);
+                    wsFacade=new WebSocketFacade(serverUrl, gameHandler);
+                    wsFacade.leaveFacade(authToken, gameID);
                 }
 
-                if (isLightSquare) {
-                    setWhite(out);
-                    color="WHITE";
-                } else {
-                    setBlack(out);
-                    color="BLACK";
-                }
-
-                if (squareRow == SQUARE_SIZE_IN_CHARS / 2) {
-                    setMagenta(out);
-                    out.print(SET_TEXT_COLOR_BLACK);
-
-                    if (boardCol == 0) {
-                        if (atBottom) {
-                            drawColumn(out, column);
-                            column++;
-                        } else {
-                            drawColumn(out, reverseColumn);
-                            reverseColumn--;
-                        }
-                    }
-
-                    int prefixLength=SQUARE_SIZE_IN_CHARS / 2;
-                    int suffixLength=SQUARE_SIZE_IN_CHARS - prefixLength - 1;
-
-                    if (color == "WHITE") {
-                        setWhite(out);
-                    } else {
-                        setBlack(out);
-                    }
-                    out.print(EMPTY.repeat(prefixLength));
-                    printPlayer(out, playerPieces[boardCol], boardRow, pieceColor);
-                    out.print(EMPTY.repeat(suffixLength));
-                    continue;
-                } else {
-                    out.print(EMPTY.repeat(SQUARE_SIZE_IN_CHARS));
-                }
-            }
-
-            if (squareRow == 1) {
-                if (atBottom) {
-                    drawColumn(out, column-1);
-                } else {
-                    drawColumn(out, reverseColumn+1);
-                }
+                System.out.print(SET_TEXT_COLOR_GREEN);
+                return String.format("Leaving game " + gameID + "...\n");
             } else {
-                drawBorder(out);
+                command = "stay";
+                return "Error: Game ID does not match game joined\n";
             }
-            resetAll(out);
-            out.println();
-        }
-    }
-
-    private static void drawEmptyRow(PrintStream out, int boardRow) {
-        for (int squareRow = 0; squareRow < SQUARE_SIZE_IN_CHARS; ++squareRow) {
-            for (int boardCol = 0; boardCol < BOARD_SIZE_IN_SQUARES; ++boardCol) {
-                boolean isEvenRow=boardRow % 2 == 0;
-                boolean isEvenCol=boardCol % 2 == 0;
-                boolean isLightSquare=(isEvenRow && isEvenCol) || (!isEvenRow && !isEvenCol);
-                String color=null;
-
-                if (squareRow != 1 && boardCol == 0) {
-                    drawBorder(out);
-                }
-
-                if (isLightSquare) {
-                    setWhite(out);
-                    color="WHITE";
-                } else {
-                    setBlack(out);
-                    color="BLACK";
-                }
-
-                if (squareRow == SQUARE_SIZE_IN_CHARS / 2) {
-                    setMagenta(out);
-                    out.print(SET_TEXT_COLOR_BLACK);
-
-                    if (boardCol == 0) {
-                        if (atBottom) {
-                            drawColumn(out, column);
-                            column++;
-                        } else {
-                            drawColumn(out, reverseColumn);
-                            reverseColumn--;
-                        }
-                    }
-
-                    if (color == "WHITE") {
-                        setWhite(out);
-                    } else {
-                        setBlack(out);
-                    }
-                    out.print(EMPTY.repeat(SQUARE_SIZE_IN_CHARS));
-
-                } else {
-                    out.print(EMPTY.repeat(SQUARE_SIZE_IN_CHARS));
-                }
-            }
-
-            if (squareRow == 1) {
-                if (atBottom) {
-                    drawColumn(out, column-1);
-                } else {
-                    drawColumn(out, reverseColumn+1);
-                }
-            } else {
-                drawBorder(out);
-            }
-            resetAll(out);
-            out.println();
-        }
-    }
-
-    private static void setWhite(PrintStream out) {
-        out.print(SET_BG_COLOR_WHITE);
-        out.print(SET_TEXT_COLOR_WHITE);
-    }
-
-    private static void setMagenta(PrintStream out) {
-        out.print(SET_BG_COLOR_MAGENTA);
-        out.print(SET_TEXT_COLOR_MAGENTA);
-    }
-
-    private static void setBlack(PrintStream out) {
-        out.print(SET_BG_COLOR_BLACK);
-        out.print(SET_TEXT_COLOR_BLACK);
-    }
-
-    private static void resetAll(PrintStream out) {
-        out.print(RESET_BG_COLOR);
-        out.print(RESET_TEXT_COLOR);
-    }
-
-    private static void printPlayer(PrintStream out, String player, int boardRow, String pieceColor) {
-        if (pieceColor == "WHITE") {
-            out.print(SET_TEXT_BOLD);
-            out.print(SET_TEXT_COLOR_BLUE);
         } else {
-            out.print(SET_TEXT_BOLD);
-            out.print(SET_TEXT_COLOR_RED);
+            command = "stay";
+            return "Error: Did not provide game ID\n";
         }
-        out.print(player);
+    }
+
+    public String move() {
+        System.out.print(SET_TEXT_COLOR_GREEN);
+        return String.format("Moving...\n");
+    }
+
+    public String resign() {
+        System.out.println("Are you sure you want to resign? (Yes/No)");
+        String input = scanner.nextLine().trim().toLowerCase();
+        if (input.equals("yes")) {
+            System.out.println("You resigned from the game.");
+        } else {
+            System.out.println("Resignation cancelled.");
+        }
+        return "";
+    }
+
+    public String highlight() {
+        System.out.print(SET_TEXT_COLOR_GREEN);
+        return String.format("Highlighting...\n");
+    }
+
+    @Override
+    public void updateGame(ChessGame game) {
+        String gameInfo = new Gson().toJson(game);
+    }
+
+    @Override
+    public void printMessage(ServerMessage message) {
+        System.out.println(SET_TEXT_COLOR_RED + message.toString());
+
     }
 }

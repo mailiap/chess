@@ -10,6 +10,7 @@ import org.eclipse.jetty.security.PropertyUserStore;
 import org.eclipse.jetty.server.Authentication;
 import service.*;
 import spark.*;
+import websocket.WebSocketHandler;
 
 import java.sql.Array;
 import java.sql.SQLException;
@@ -20,6 +21,8 @@ public class Server {
     public int run(int desiredPort) {
         Spark.port(desiredPort);
         Spark.staticFiles.location("web");
+
+        Spark.webSocket("/connect", new WebSocketHandler());
 
         // Register your endpoints and handle exceptions here.
         Spark.delete("/db", this::clearApplication);

@@ -1,31 +1,39 @@
 package ui;
 
+import chess.ChessGame;
+import dataAccess.DataAccessException;
 import exception.ResponseException;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
 import server.ServerFacade;
+import websocket.GameHandler;
+import websocket.WebSocketFacade;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Scanner;
 
 import static ui.EscapeSequences.*;
 
 public class ChessClient {
-    private String username = null;
-    private String password = null;
+    private String username=null;
+    private String password=null;
+    private String authToken=null;
+    private State state=State.SIGNEDOUT;
     private ServerFacade server;
     private String serverUrl;
-    private State state = State.SIGNEDOUT;
-    private Scanner scanner;
+    private GameHandler gameHandler;
+    private WebSocketFacade wsFacade;
 
-    public ChessClient(String serverUrl) {
-        server = new ServerFacade(serverUrl);
-        this.serverUrl = serverUrl;
-        this.scanner = new Scanner(System.in);
 
+    public ChessClient(String serverUrl, GameHandler gameHandler) throws ResponseException {
+        server=new ServerFacade(serverUrl);
+        this.serverUrl=serverUrl;
+        this.gameHandler=gameHandler;
+//        wsFacade = new WebSocketFacade(serverUrl, gameHandler);
     }
 
     public String eval(String input) {
@@ -53,121 +61,131 @@ public class ChessClient {
                     default -> throw new IllegalStateException("Unexpected value: " + choice + "\n");
                 };
             }
-         } catch (ResponseException | IOException ex) {
+        } catch (ResponseException | IOException ex) {
             if (ex.getMessage() == "Already connected") {
-                state = State.SIGNEDIN;
+                state=State.SIGNEDIN;
             }
             return String.format(ex.getMessage() + "\n");
         } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (DataAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
     public String register(String... params) throws ResponseException, IOException, URISyntaxException {
-            username=params[0];
-            password=params[1];
-            String email=params[2];
-            UserData user = new UserData(username, password, email);
-            AuthData auth = server.register(user);
-            if (user != null) {
-                login(username, password);
-            }
-            return String.format(SET_TEXT_COLOR_GREEN + "logged in as %s.\n", auth.username());
+        username=params[0];
+        password=params[1];
+        String email=params[2];
+        UserData user=new UserData(username, password, email);
+        AuthData auth=server.register(user);
+        authToken=auth.authToken();
+        if (user != null) {
+            login(username, password);
         }
+        return String.format(SET_TEXT_COLOR_GREEN + "logged in as %s.\n", auth.username());
+    }
 
     public String login(String... params) throws ResponseException {
-            username = params[0];
-            password = params[1];
-            UserData user = new UserData(username, password, null);
-            AuthData auth = server.login(user);
-            state = State.SIGNEDIN;
-            return String.format(SET_TEXT_COLOR_GREEN + "You signed in as %s.\n", auth.username());
-        }
+        username=params[0];
+        password=params[1];
+        UserData user=new UserData(username, password, null);
+        AuthData auth=server.login(user);
+        authToken=auth.authToken();
+        state=State.SIGNEDIN;
+        return String.format(SET_TEXT_COLOR_GREEN + "You signed in as %s.\n", auth.username());
+    }
 
     public String createGame(String... params) throws ResponseException {
-            String gameName=params[0];
-            GameData newGame = new GameData(0, null, null, gameName, null);
-            server.createGame(newGame);
-            return String.format(SET_TEXT_COLOR_GREEN + "You created game %s.\n", newGame.gameName());
-        }
+        String gameName=params[0];
+        GameData newGame=new GameData(0, null, null, gameName, null);
+        server.createGame(newGame);
+        return String.format(SET_TEXT_COLOR_GREEN + "You created game %s.\n", newGame.gameName());
+    }
 
     public String listGames() throws ResponseException {
         assertSignedIn();
         GameData[] games=server.listGames();
         StringBuilder result=new StringBuilder();
         if (games.length == 0) {
-            result.append("No games available.");
+            result.append("No games available.\n");
         } else {
             System.out.print(SET_TEXT_COLOR_YELLOW);
             result.append("Games:\n");
             for (int i=0; i < games.length; i++) {
                 if (games[i].whiteUsername() == null && games[i].blackUsername() != null) {
-                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + username + "'").append("\n\n");
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + games[i].blackUsername() + "'");
                 } else if (games[i].whiteUsername() != null && games[i].blackUsername() == null) {
-                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + username + "'").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty").append("\n\n");
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + games[i].whiteUsername() + "'").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty");
                 } else if (games[i].whiteUsername() == null && games[i].blackUsername() == null) {
-                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty").append("\n\n");
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_YELLOW + "white user is empty").append(SET_TEXT_COLOR_YELLOW + "\n\tblack user is empty");
                 } else {
-                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + username + "'").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + username + "'").append("\n\n");
+                    result.append(SET_TEXT_COLOR_YELLOW + (i + 1)).append(". ").append(games[i].gameName()).append("\n\t").append(SET_TEXT_COLOR_BLUE + "white user is ").append("'" + games[i].whiteUsername() + "'").append(SET_TEXT_COLOR_RED + "\n\tblack user is ").append("'" + games[i].blackUsername() + "'");
+                }
+                if (i == games.length - 1) {
+                    result.append("\n");
+                } else {
+                    result.append("\n\n");
                 }
             }
         }
         return SET_TEXT_COLOR_YELLOW + result;
     }
-    
-    public String joinGame(String... params) throws ResponseException {
-        int gameID = Integer.parseInt(params[0]);
-        String playerColor = params[1].toUpperCase();
-        server.joinGame(gameID, playerColor);
-        new GameplayUI().run();
 
-        if (playerColor.equals("WHITE")) {
-            System.out.println(SET_TEXT_COLOR_BLUE);
-        } else {
-            System.out.println(SET_TEXT_COLOR_RED);
-        }
-        return String.format("\nuser %s joined game %d on the %s team.\n", username, gameID, playerColor);
+    public String joinGame(String... params) throws ResponseException, SQLException, DataAccessException {
+        int gameID=Integer.parseInt(params[0]);
+        String playerColor=params[1].toUpperCase();
+        server.joinGame(gameID, playerColor);
+        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
+        wsFacade.joinPlayerFacade(authToken, gameID, ChessGame.TeamColor.valueOf(playerColor));
+        String input=String.format(gameID + " " + authToken + " " + playerColor.toString());
+        new GameplayUI(serverUrl, gameHandler).run(input);
+         return "";
     }
 
-    public String joinObserver(String... params) throws ResponseException {
-        int gameID = Integer.parseInt(params[0]);
+    public String joinObserver(String... params) throws ResponseException, SQLException, DataAccessException {
+        int gameID=Integer.parseInt(params[0]);
         server.joinGame(gameID, null);
-        new GameplayUI().run();
-        System.out.println(SET_TEXT_COLOR_YELLOW);
-        return String.format("\njoined game %d as an observer.\n", gameID);
+        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
+        wsFacade.joinObserverFacade(authToken, gameID);
+        String input=String.format(gameID + " NULL");
+        new GameplayUI(serverUrl, gameHandler).run(input);
+        return "";
     }
 
     public String logout() throws ResponseException {
         assertSignedIn();
         server.logout();
-        state = State.SIGNEDOUT;
+        state=State.SIGNEDOUT;
         System.out.print(SET_TEXT_COLOR_GREEN);
         return String.format("%s has been logged out.\n", username);
     }
 
     public String quit() {
         state=State.SIGNEDOUT;
-        System.out.println(SET_TEXT_COLOR_GREEN);
-        return String.format("Exiting program...\n");
+        System.out.print(SET_TEXT_COLOR_GREEN);
+        return String.format("Exiting program...");
     }
 
     public String help() {
         if (state == State.SIGNEDOUT) {
             return """ 
-                    register <USERNAME> <PASSWORD> <EMAIL> - to create an account
-                    login <USERNAME> <PASSWORD> - to play chess
-                    quit - playing chess
-                    help - with possible commands
+                    register <USERNAME> <PASSWORD> <EMAIL>
+                    login <USERNAME> <PASSWORD>
+                    quit
+                    help
                     """;
         }
         return """
-                create ‹NAME> - a game
-                list - games
-                join <ID> [WHITE|BLACK|<empty>] - a game
-                observe ‹ID> - a game
-                logout - when you are done 
-                quit - playing chess
-                help - with possible commands
+                create ‹NAME>
+                list
+                join <ID> [WHITE|BLACK|<empty>]
+                observe ‹ID>
+                logout
+                quit
+                help
                 """;
     }
 
