@@ -34,9 +34,13 @@ public class ChessGame {
 
     private ChessBoard board;
     private TeamColor team;
+    private boolean isInCheckmate;
+    private boolean isInStalemate;
+    private boolean isResigned;
 
     public ChessGame() {
-
+        this.board=getBoard();
+        this.team=getTeamTurn();
     }
 
     /**
@@ -114,6 +118,7 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+//        if ()
         if (getBoard() == null) {
             throw new InvalidMoveException();
         }
@@ -141,6 +146,7 @@ public class ChessGame {
 //        setBoard(newBoard);
         switchTeamTurn();
     }
+    
     public void movePiece(ChessMove move, ChessBoard newBoard) throws InvalidMoveException {
         ChessPosition start = move.getStartPosition();
         ChessPosition end = move.getEndPosition();
@@ -231,11 +237,13 @@ public class ChessGame {
                     ChessBoard newBoard = new ChessBoard(getBoard());
                     newBoard.addPiece(move.getEndPosition(), piece);
                     if (isInCheck(teamColor)) {
+                        setIsInCheckmate(true);
                         return true;
                     }
                 }
             }
         }
+        setIsInCheckmate(false);
         return false;
     }
 
@@ -255,13 +263,16 @@ public class ChessGame {
 
                     if (currentPiece != null && currentPiece.getTeamColor().equals(teamColor)) {
                         if (hasValidMoves(teamColor)) {
+                            setIsInStalemate(true);
                             return true;
                         }
                     }
                 }
             }
+            setIsInStalemate(true);
             return true;
         }
+        setIsInStalemate(false);
         return false;
     }
 
@@ -305,5 +316,29 @@ public class ChessGame {
             }
         }
         return teamPieces;
+    }
+
+    public void setIsInCheckmate(boolean isInCheckmate) {
+        this.isInCheckmate=isInCheckmate;
+    }
+
+    public boolean getIsInCheckmate() {
+        return isInCheckmate;
+    }
+
+    public void setIsInStalemate(boolean isInStalemate) {
+        this.isInStalemate=isInStalemate;
+    }
+
+    public boolean getIsInStalemate() {
+        return isInStalemate;
+    }
+    
+    public void setIsResgined(boolean isResigned) {
+        this.isResigned=isResigned;
+    }
+
+    public boolean getIsResigned() {
+        return isResigned;
     }
 }

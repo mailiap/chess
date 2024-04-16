@@ -16,7 +16,6 @@ public class WebSocketSessions {
         if (!sessionMap.isEmpty()) {
             sessionMap.get(gameID).put(authToken, session);
         } else {
-//            sessionList.putAll(authToken, session);
             sessionList.put(authToken, session);
             sessionMap.put(gameID, sessionList);
         }
@@ -28,10 +27,6 @@ public class WebSocketSessions {
 
     public void removeSession(Session session) {
         sessionMap.remove(session);
-    }
-
-    public List<Session> getSessionsForGame1(int gameID) {
-        return (List<Session>) sessionMap.get(gameID);
     }
 
     public Map<String, Session> getSessionsForGame(int gameID) {

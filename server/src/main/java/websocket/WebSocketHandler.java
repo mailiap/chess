@@ -1,5 +1,7 @@
 package websocket;
 
+import chess.ChessGame;
+import chess.InvalidMoveException;
 import com.google.gson.Gson;
 import dataAccess.*;
 import exception.*;
@@ -22,84 +24,174 @@ import java.util.*;
 public class WebSocketHandler {
 
     public WebSocketSessions sessions = new WebSocketSessions();
-    private String username = "";
-
-//    @OnWebSocketConnect
-//    public void onConnect(Session session) {}
-//
-//    @OnWebSocketClose
-//    public void OnClose(Session session) {}
-//
-//    @OnWebSocketError
-//    public void OnError(Throwable throwable) {}
+    private AuthData authData;
 
     @OnWebSocketMessage
-    public void onMessage(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException {
-        UserGameCommand command = new Gson().fromJson(message, UserGameCommand.class);
-        GameData gameData = new Gson().fromJson(message, GameData.class);
+    public void onMessage(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException, InvalidMoveException {
+        UserGameCommand command=new Gson().fromJson(message, UserGameCommand.class);
+        authData = new SQLAuthDAO().getAuthByAuthToken(command.getAuthString());
 
-        // check auth token
-        username = new SQLAuthDAO().getUserByAuthToken(command.getAuthString());
-        Collection<GameData> list=new SQLGameDAO().getGames();
-        if (username == null || !list.contains(gameData.gameID()) || list == null) {
-            Error error = new Error(ServerMessage.ServerMessageType.ERROR, "Error: unauthorized");
+        if (authData == null) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: unauthorized");
             sendMessage(new Gson().toJson(error), session);
         } else {
             switch (command.getCommandType()) {
                 case JOIN_PLAYER -> joinPlayer(session, message);
                 case JOIN_OBSERVER -> joinObserver(session, message);
-                case MAKE_MOVE -> makeMove(session);
+                case MAKE_MOVE -> makeMove(session, message);
                 case LEAVE -> leave(session, message);
-                case RESIGN -> resign(session);
+                case RESIGN -> resign(session, message);
             }
         }
     }
+
     public void joinPlayer(Session session, String message) throws IOException, ResponseException, DataAccessException, SQLException {
         JoinPlayer player = new Gson().fromJson(message, JoinPlayer.class);
+        GameData gameData = new SQLGameDAO().getGameByID(player.getGameID());
 
+        if (gameData == null) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: game not found");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        if (gameData.whiteUsername() == null && gameData.blackUsername() == null) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: game not found");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        if (gameData.whiteUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken())) && gameData.blackUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken()))) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: unauthorized");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        // add user
         sessions.addSessionToGame(player.getGameID(), player.getAuthString(), session);
-        // get game form database using gameDAO
-        GameData game = new SQLGameDAO().getGameByID(player.getGameID());
-        // set message as Json new Notoificatio ("")
 
-        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, game.game());
-        sendMessage(new Gson().toJson(gameNotify), session); //toJson
-        // make new Notification
-        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION, username + " has joined the " + player.getPlayerColor() + " game");
-        broadcastMessage(player.getGameID(), notification.getMessage(), session);
+        // load game and send to client
+        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        sendMessage(new Gson().toJson(gameNotify), session);
+
+        // send notification to all clients
+        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION,authData.username() + " has joined the " + player.getPlayerColor() + " team");
+        broadcastMessage(player.getGameID(), new Gson().toJson(notification), session);
     }
 
 
     public void joinObserver(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException {
         JoinObserver observer = new Gson().fromJson(message, JoinObserver.class);
+        GameData gameData = new SQLGameDAO().getGameByID(observer.getGameID());
 
+        if (gameData == null) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "joinObserver Error: game = null");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+//        if (gameData.whiteUsername() == null && gameData.blackUsername() == null) {
+//            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "joinObserver Error: game username = null");
+//            sendMessage(new Gson().toJson(error), session);
+//            return;
+//        }
+
+        // add user
         sessions.addSessionToGame(observer.getGameID(), observer.getAuthString(), session);
-        // get game form database using gameDAO
-        GameData game = new SQLGameDAO().getGameByID(observer.getGameID());
-        // set message as Json new Notoificatio ("")
 
-        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, game.game());
-        sendMessage(new Gson().toJson(gameNotify), session); //toJson
-        // make new Notification
-        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION, username + " has joined the game");
-        broadcastMessage(observer.getGameID(), notification.getMessage(), session);
+        // load game and send to client
+        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        sendMessage(new Gson().toJson(gameNotify), session);
+
+        // send notification to all clients
+        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " is observing the game");
+        broadcastMessage(observer.getGameID(), new Gson().toJson(notification), session);
     }
 
-    public void makeMove(Session session) throws ResponseException, DataAccessException {
+    public void makeMove(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException, InvalidMoveException {
+        MakeMove mover=new Gson().fromJson(message, MakeMove.class);
+        GameData gameData = new SQLGameDAO().getGameByID(mover.getGameID());
+
+        // verify the validity of the move
+        boolean whitePlayer = (mover.getAuthString().equals(new SQLAuthDAO().getAuthByAuthToken(gameData.whiteUsername()).authToken()));
+        boolean blackPlayer = (mover.getAuthString().equals(new SQLAuthDAO().getAuthByAuthToken(gameData.blackUsername()).authToken()));
+        boolean observer = !whitePlayer && !blackPlayer;
+
+        if (observer) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: observer cannot make moves");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        ChessGame.TeamColor teamColor = whitePlayer ? ChessGame.TeamColor.WHITE: ChessGame.TeamColor.BLACK;
+        if (gameData.game().getTeamTurn() != teamColor) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: not your turn");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        // make move
+        gameData.game().isInCheckmate(teamColor);
+        gameData.game().isInStalemate(teamColor);
+        gameData.game().makeMove(mover.getMove());
+
+        // update game in database
+        new SQLGameDAO().updateGame(gameData.game(), gameData.gameID());
+
+        // send updated game to all clients
+        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        sendMessage(new Gson().toJson(gameNotify), session);
+        broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
+
+        // send notification to all clients
+        Notification notification=new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " made the move " + mover.getMove());
+        broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
     }
 
     public void leave(Session session, String message) throws IOException, ResponseException, DataAccessException, SQLException {
-        // remove user
-        // update game in database
-        // send notification
         Leave leaver = new Gson().fromJson(message, Leave.class);
+
+        // remove user
         sessions.removeSessionFromGame(leaver.getGameID(), leaver.getAuthString(), session);
-        // make new Notification
-        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION, username + " has left the game");
-        broadcastMessage(leaver.getGameID(), notification.getMessage(), session);
+
+        // send notification to all clients
+        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION,authData.username() + " left the game");
+        broadcastMessage(leaver.getGameID(), new Gson().toJson(notification), session);
     }
 
-    public void resign(Session session) throws ResponseException, DataAccessException {
+    public void resign(Session session, String message) throws IOException, ResponseException, DataAccessException, SQLException {
+        Resign resigner = new Gson().fromJson(message, Resign.class);
+        GameData gameData = new SQLGameDAO().getGameByID(resigner.getGameID());
+
+
+        if (!gameData.whiteUsername().equals(new SQLAuthDAO().getUserByAuthToken(resigner.getAuthString())) && !gameData.blackUsername().equals(new SQLAuthDAO().getUserByAuthToken(resigner.getAuthString()))) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: Observer cannot resign");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        if (gameData.game().getIsResigned()) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: Player has already resigned");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        if (gameData == null) {
+            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: invalid game id");
+            sendMessage(new Gson().toJson(error), session);
+            return;
+        }
+
+        // mark game as over
+        //update game in database
+        gameData.game().setIsResgined(true);
+
+        // remove userd
+        sessions.removeSessionFromGame(resigner.getGameID(), resigner.getAuthString(), session);
+
+        // send notification
+        Notification notification = new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " resigned from the game");
+        broadcastMessage(resigner.getGameID(), new Gson().toJson(notification), session);
     }
 
     public void sendMessage(String message, Session session) throws IOException {
@@ -107,26 +199,14 @@ public class WebSocketHandler {
     }
 
     public void broadcastMessage(int gameID, String message, Session session) throws IOException {
-        sessions.getSessionsForGame(gameID);
-        // getSeesionsForGAme
-        // loop through
-        // sendMessage except for this session passed throguh
-        var removeList = new ArrayList<Session>();
-        var gameSessions = sessions.getSessionsForGame(gameID);
-        for (var c : gameSessions.values()) {
-            if (c.isOpen()) {
-                if (!c.equals(session)) {
-                    sendMessage(message, c);
-                }
-            } else {
-                removeList.add(c);
+        // get sessions
+        var gameSessions=sessions.getSessionsForGame(gameID);
+
+        // loop through and send message except for the session passed through
+        for (var otherSessions : gameSessions.values()) {
+            if (!otherSessions.equals(session)) {
+                sendMessage(message, otherSessions);
             }
         }
-
-        // Clean up any connections that were left open.
-        for (var c : removeList) {
-            sessions.removeSession(session);
-        }
     }
-
 }

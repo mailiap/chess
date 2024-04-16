@@ -1,5 +1,6 @@
 package ui;
 
+import chess.ChessBoard;
 import chess.ChessGame;
 import dataAccess.DataAccessException;
 import exception.ResponseException;
@@ -22,6 +23,7 @@ public class ChessClient {
     private String username=null;
     private String password=null;
     private String authToken=null;
+    private GameData newGame;
     private State state=State.SIGNEDOUT;
     private ServerFacade server;
     private String serverUrl;
@@ -100,7 +102,11 @@ public class ChessClient {
 
     public String createGame(String... params) throws ResponseException {
         String gameName=params[0];
-        GameData newGame=new GameData(0, null, null, gameName, null);
+        ChessBoard board = new ChessBoard();
+        board.resetBoard();
+        ChessGame chessGame = new ChessGame();
+        chessGame.setBoard(board);
+        newGame=new GameData(0, null, null, gameName, chessGame);
         server.createGame(newGame);
         return String.format(SET_TEXT_COLOR_GREEN + "You created game %s.\n", newGame.gameName());
     }
@@ -140,8 +146,6 @@ public class ChessClient {
         server.joinGame(gameID, playerColor);
         wsFacade=new WebSocketFacade(serverUrl, gameHandler);
         wsFacade.joinPlayerFacade(authToken, gameID, ChessGame.TeamColor.valueOf(playerColor));
-        String input=String.format(gameID + " " + authToken + " " + playerColor.toString());
-        new GameplayUI(serverUrl, gameHandler).run(input);
          return "";
     }
 
@@ -150,8 +154,6 @@ public class ChessClient {
         server.joinGame(gameID, null);
         wsFacade=new WebSocketFacade(serverUrl, gameHandler);
         wsFacade.joinObserverFacade(authToken, gameID);
-        String input=String.format(gameID + " NULL");
-        new GameplayUI(serverUrl, gameHandler).run(input);
         return "";
     }
 

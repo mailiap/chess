@@ -1,5 +1,6 @@
 package dataAccess;
 
+import chess.ChessBoard;
 import chess.ChessGame;
 import com.google.gson.Gson;
 import exception.*;
@@ -39,7 +40,7 @@ public class SQLGameDAO implements GameDAO {
                     String whiteUsername = rs.getString("whiteUsername");
                     String blackUsername = rs.getString("blackUsername");
                     String gameName = rs.getString("gameName");
-//                    ChessGame game = new ChessGame();
+//                    ChessGame game = rs.getObject("game", ChessGame.class);
                     gameDataList.add(new GameData(gameId, whiteUsername, blackUsername, gameName, null));
                 }
             }
@@ -50,8 +51,14 @@ public class SQLGameDAO implements GameDAO {
 
     public int newGame(String gameName) throws DataAccessException, SQLException {
         try (Connection conn = getConnection()) {
-            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO games (gameName) VALUES(?)",Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO games (gameName, game) VALUES(?, ?)",Statement.RETURN_GENERATED_KEYS)) {
                 preparedStatement.setString(1, gameName);
+                ChessBoard board = new ChessBoard();
+                board.resetBoard();
+                ChessGame chessGame = new ChessGame();
+                chessGame.setBoard(board);
+                chessGame.setTeamTurn(ChessGame.TeamColor.WHITE);
+                preparedStatement.setString(2, new Gson().toJson(chessGame));
                 preparedStatement.executeUpdate();
 
                 ResultSet rs = preparedStatement.getGeneratedKeys();
@@ -73,8 +80,9 @@ public class SQLGameDAO implements GameDAO {
                     String whiteUsername = rs.getString("whiteUsername");
                     String blackUsername = rs.getString("blackUsername");
                     String gameName = rs.getString("gameName");
-                    ChessGame game = new ChessGame();
-                    gameData = new GameData(gameId, whiteUsername, blackUsername, gameName, game);
+                    String game = rs.getString("game");
+                    ChessGame chessGame = new Gson().fromJson(game, ChessGame.class);
+                    gameData = new GameData(gameId, whiteUsername, blackUsername, gameName, chessGame);
                 }
             }
         } catch (SQLException e) {
@@ -100,8 +108,21 @@ public class SQLGameDAO implements GameDAO {
                     preparedStatement.setString(1, username);
                     preparedStatement.setInt(2, gameID);
                 }
-                int rowsAffected = preparedStatement.executeUpdate();
-                // System.out.println(rowsAffected + " row(s) updated successfully.");
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void updateGame(ChessGame game, int gameID) throws DataAccessException, SQLException {
+        var conn = getConnection();
+        try {
+            var statement = "UPDATE games SET game = ? WHERE id = ?";
+            try (var preparedStatement = conn.prepareStatement(statement)) {
+                preparedStatement.setString(1, new Gson().toJson(game));
+                preparedStatement.setInt(2, gameID);
+                preparedStatement.executeUpdate();
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -130,21 +151,6 @@ public class SQLGameDAO implements GameDAO {
             }
         } catch (SQLException ex) {
             throw new ResponseException(500, String.format("Unable to configure database: %s", ex.getMessage()));
-        }
-    }
-
-    private void updateGameID(int gameID) throws DataAccessException, SQLException {
-        var conn = getConnection();
-        try {
-            var statement = "UPDATE games SET gameID = ? WHERE id = ?";
-            try (var preparedStatement = conn.prepareStatement(statement)) {
-                preparedStatement.setInt(1, gameID);
-                preparedStatement.setInt(2, gameID);
-                int rowsAffected = preparedStatement.executeUpdate();
-//                System.out.println(rowsAffected + " row(s) updated successfully.");
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
     }
 }

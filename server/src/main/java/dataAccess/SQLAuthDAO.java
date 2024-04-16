@@ -59,6 +59,22 @@ public class SQLAuthDAO implements AuthDAO {
         return username;
     }
 
+    public AuthData getAuthByAuthToken(String inputAuthToken) throws DataAccessException, SQLException {
+        AuthData authData = null;
+        try (Connection conn=getConnection()) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM auths WHERE authToken = ?")) {
+                preparedStatement.setString(1, inputAuthToken);
+                ResultSet rs = preparedStatement.executeQuery();
+                if (rs.next()) {
+                    String username = rs.getString("username");
+                    String authToken = rs.getString("authToken");
+                    authData = new AuthData(username, authToken);
+                }
+            }
+        }
+        return authData;
+    }
+
     private final String[] createStatements = {
             """
     CREATE TABLE IF NOT EXISTS auths (
