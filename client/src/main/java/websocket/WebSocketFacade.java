@@ -35,7 +35,6 @@ public class WebSocketFacade extends Endpoint {
                 @Override
                 public void onMessage(String message) {
                     ServerMessage serverMessage=new Gson().fromJson(message, ServerMessage.class);
-                    System.out.println("received message " + serverMessage.getServerMessageType());
                     try {
                         gameHandler.printMessage(serverMessage, message);
                     } catch (ResponseException e) {

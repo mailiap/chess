@@ -1,6 +1,7 @@
 package websocket;
 
 import chess.ChessGame;
+import chess.ChessPosition;
 import chess.InvalidMoveException;
 import com.google.gson.Gson;
 import dataAccess.*;
@@ -148,12 +149,16 @@ public class WebSocketHandler {
         new SQLGameDAO().updateGame(gameData.game(), gameData.gameID());
 
         // send updated game to all clients
-        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game(), gameData.game().getTeamTurn());
         sendMessage(new Gson().toJson(gameNotify), session);
         broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
 
+        //unconvert
+        String unconvertStartPosition = unconvertMove(mover.getMove().getStartPosition().getColumn(), mover.getMove().getStartPosition().getRow());
+        String unconvertEndPosition = unconvertMove(mover.getMove().getEndPosition().getColumn(), mover.getMove().getEndPosition().getRow());
+
         // send notification to all clients
-        Notification notification=new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " made the move " + mover.getMove());
+        Notification notification=new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " made the move from " + unconvertStartPosition + " to " + unconvertEndPosition);
         broadcastMessage(mover.getGameID(), new Gson().toJson(notification), session);
     }
 
@@ -217,5 +222,22 @@ public class WebSocketHandler {
                 sendMessage(message, otherSessions);
             }
         }
+    }
+
+    public String unconvertMove(int col, int row) {
+        String unconvertedCol="";
+        switch (col) {
+            case 1 -> unconvertedCol = "a";
+            case 2 -> unconvertedCol = "b";
+            case 3 -> unconvertedCol = "c";
+            case 4 -> unconvertedCol = "d";
+            case 5 -> unconvertedCol = "e";
+            case 6 -> unconvertedCol = "f";
+            case 7 -> unconvertedCol = "g";
+            case 8 -> unconvertedCol = "h";
+        }
+        return unconvertedCol+row;
+        // convert string into a int
+        // set new postion inside of new move using the converted col
     }
 }

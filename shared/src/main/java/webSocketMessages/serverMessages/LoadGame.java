@@ -13,11 +13,11 @@ public class LoadGame extends ServerMessage {
         this.playerColor=playerColor;
     }
 
-    public LoadGame(ServerMessageType type, final ChessGame game) {
-        super(type);
-        this.game=game;
-        this.playerColor=ChessGame.TeamColor.WHITE;
-    }
+//    public LoadGame(ServerMessageType type, final ChessGame game) {
+//        super(type);
+//        this.game=game;
+//        this.playerColor=ChessGame.TeamColor.WHITE;
+//    }
 
     public ChessGame getGame() {
         return game;

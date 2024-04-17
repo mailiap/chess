@@ -59,6 +59,8 @@ public class Repl implements GameHandler {
                     loadGame.getGame().setTeamTurn(null);
                 } else if (loadGame.getPlayerColor().equals(ChessGame.TeamColor.BLACK)) {
                     loadGame.getGame().setTeamTurn(ChessGame.TeamColor.BLACK);
+                } else {
+                    loadGame.getGame().setTeamTurn(ChessGame.TeamColor.WHITE);
                 }
                 
                 System.out.println();
