@@ -49,20 +49,20 @@ public class Repl implements GameHandler {
         System.out.println();
     }
 
-    @Override
-    public void updateGame(ChessGame game) throws ResponseException, DataAccessException {
-
-    }
-
-    @Override
     public void printMessage(ServerMessage serverType, String message) throws ResponseException, DataAccessException {
 //        System.out.println(SET_TEXT_COLOR_YELLOW + "I don't know what this is doing" + RESET_TEXT_COLOR);
         switch (serverType.getServerMessageType()) {
             case LOAD_GAME -> {
                 LoadGame loadGame =new Gson().fromJson(message, LoadGame.class);
-                var out=new PrintStream(System.out, true, StandardCharsets.UTF_8);
+
+                if (loadGame.getPlayerColor() == null) {
+                    loadGame.getGame().setTeamTurn(null);
+                } else if (loadGame.getPlayerColor().equals(ChessGame.TeamColor.BLACK)) {
+                    loadGame.getGame().setTeamTurn(ChessGame.TeamColor.BLACK);
+                }
+                
                 System.out.println();
-                DrawGameBoard.drawChessboard(out, loadGame.getGame());
+                DrawGameBoard.drawChessboard(loadGame.getGame());
                 System.out.print("\n" + RESET_TEXT_COLOR + "[GAMEPLAY] >>> ");
             }
             case NOTIFICATION -> {

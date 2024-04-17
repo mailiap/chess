@@ -263,7 +263,7 @@ public class ChessGame {
 
                     if (currentPiece != null && currentPiece.getTeamColor().equals(teamColor)) {
                         if (hasValidMoves(teamColor)) {
-                            setIsInStalemate(true);
+//                            setIsInStalemate(true);
                             return true;
                         }
                     }

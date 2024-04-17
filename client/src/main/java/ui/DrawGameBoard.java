@@ -6,6 +6,7 @@ import chess.ChessPiece;
 import chess.ChessPosition;
 
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import static ui.EscapeSequences.*;
 import static ui.EscapeSequences.SET_TEXT_COLOR_RED;
@@ -26,21 +27,40 @@ public class DrawGameBoard {
         ChessGame chessGame=new ChessGame();
         chessGame.setBoard(board);
         chessGame.setTeamTurn(ChessGame.TeamColor.BLACK);
-        drawChessboard(System.out, chessGame);
+        drawChessboard(chessGame);
     }
 
-    static void drawChessboard(PrintStream out, ChessGame game) {
+    static void drawChessboard(ChessGame game) {
+        PrintStream out=new PrintStream(System.out, true, StandardCharsets.UTF_8);
+
+        out.print(ERASE_SCREEN);
         // pass through ChessGame game
         // iterate through each piece on board and print it
 
-        if (game.getTeamTurn().equals(ChessGame.TeamColor.WHITE)) {
-            drawWhiteHeader(out);
-            drawWhiteAtBottom(out, game);
-            drawWhiteHeader(out);
-        } else {
+        if (game.getTeamTurn() == null) {
             drawBlackHeader(out);
             drawBlackAtBottom(out, game);
             drawBlackHeader(out);
+        } else if (game.getTeamTurn().equals(ChessGame.TeamColor.WHITE)) {
+            drawBlackHeader(out);
+            drawBlackAtBottom(out, game);
+            drawBlackHeader(out);
+        } else {
+            drawWhiteHeader(out);
+            drawWhiteAtBottom(out, game);
+            drawWhiteHeader(out);
+        }
+
+        if (game.getTeamTurn() == null) {
+            System.out.println(SET_TEXT_COLOR_YELLOW);
+            System.out.println(String.format("You are an observer."));
+        } else if (game.getTeamTurn().equals(ChessGame.TeamColor.WHITE)) {
+            System.out.println(SET_TEXT_COLOR_BLUE);
+            System.out.println(String.format("You are on the WHITE team"));
+
+        } else {
+            System.out.println(SET_TEXT_COLOR_RED);
+            System.out.println(String.format("You are on the BLACK team"));
         }
     }
 

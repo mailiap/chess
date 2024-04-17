@@ -2,5 +2,7 @@ package ui;
 
 public enum State {
     SIGNEDOUT,
-    SIGNEDIN
+    SIGNEDIN,
+    RESIGNED,
+    NOTRESIGNED
 }

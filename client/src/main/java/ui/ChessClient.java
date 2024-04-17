@@ -35,7 +35,7 @@ public class ChessClient {
         server=new ServerFacade(serverUrl);
         this.serverUrl=serverUrl;
         this.gameHandler=gameHandler;
-//        wsFacade = new WebSocketFacade(serverUrl, gameHandler);
+        this.wsFacade = new WebSocketFacade(serverUrl, gameHandler);
     }
 
     public String eval(String input) {
@@ -106,7 +106,7 @@ public class ChessClient {
         board.resetBoard();
         ChessGame chessGame = new ChessGame();
         chessGame.setBoard(board);
-        newGame=new GameData(0, null, null, gameName, chessGame);
+        newGame=new GameData(0, null, null, gameName, null);
         server.createGame(newGame);
         return String.format(SET_TEXT_COLOR_GREEN + "You created game %s.\n", newGame.gameName());
     }
@@ -144,7 +144,7 @@ public class ChessClient {
         int gameID=Integer.parseInt(params[0]);
         String playerColor=params[1].toUpperCase();
         server.joinGame(gameID, playerColor);
-        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
+//        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
         wsFacade.joinPlayerFacade(authToken, gameID, ChessGame.TeamColor.valueOf(playerColor));
          return "";
     }
@@ -152,7 +152,7 @@ public class ChessClient {
     public String joinObserver(String... params) throws ResponseException, SQLException, DataAccessException {
         int gameID=Integer.parseInt(params[0]);
         server.joinGame(gameID, null);
-        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
+//        wsFacade=new WebSocketFacade(serverUrl, gameHandler);
         wsFacade.joinObserverFacade(authToken, gameID);
         return "";
     }

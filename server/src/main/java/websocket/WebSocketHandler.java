@@ -8,14 +8,12 @@ import exception.*;
 import model.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 import org.eclipse.jetty.websocket.api.*;
-import spark.Spark;
 import webSocketMessages.serverMessages.*;
 import webSocketMessages.serverMessages.Error;
 import webSocketMessages.userCommands.*;
 
 import java.io.*;
 import java.sql.*;
-import java.util.*;
 
 
 //server
@@ -24,30 +22,34 @@ import java.util.*;
 public class WebSocketHandler {
 
     public WebSocketSessions sessions = new WebSocketSessions();
-    private AuthData authData;
+    public AuthData authData;
 
     @OnWebSocketMessage
     public void onMessage(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException, InvalidMoveException {
         UserGameCommand command=new Gson().fromJson(message, UserGameCommand.class);
-        authData = new SQLAuthDAO().getAuthByAuthToken(command.getAuthString());
+        authData=new SQLAuthDAO().getAuthByAuthToken(command.getAuthString());
 
         if (authData == null) {
             Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: unauthorized");
             sendMessage(new Gson().toJson(error), session);
-        } else {
-            switch (command.getCommandType()) {
-                case JOIN_PLAYER -> joinPlayer(session, message);
-                case JOIN_OBSERVER -> joinObserver(session, message);
-                case MAKE_MOVE -> makeMove(session, message);
-                case LEAVE -> leave(session, message);
-                case RESIGN -> resign(session, message);
-            }
+        }
+
+        switch (command.getCommandType()) {
+            case JOIN_PLAYER -> joinPlayer(session, message);
+            case JOIN_OBSERVER -> joinObserver(session, message);
+            case MAKE_MOVE -> makeMove(session, message);
+            case LEAVE -> leave(session, message);
+            case RESIGN -> resign(session, message);
         }
     }
 
-    public void joinPlayer(Session session, String message) throws IOException, ResponseException, DataAccessException, SQLException {
+    public void joinPlayer(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException {
         JoinPlayer player = new Gson().fromJson(message, JoinPlayer.class);
         GameData gameData = new SQLGameDAO().getGameByID(player.getGameID());
+
+        if (player.getPlayerColor().equals(ChessGame.TeamColor.BLACK)) {
+            gameData.game().setTeamTurn(ChessGame.TeamColor.BLACK);
+        }
 
         if (gameData == null) {
             Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: game not found");
@@ -61,17 +63,17 @@ public class WebSocketHandler {
             return;
         }
 
-        if (gameData.whiteUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken())) && gameData.blackUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken()))) {
-            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: unauthorized");
-            sendMessage(new Gson().toJson(error), session);
-            return;
-        }
+//        if (gameData.whiteUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken())) && gameData.blackUsername().equals(new SQLAuthDAO().getUserByAuthToken(authData.authToken()))) {
+//            Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: unauthorized");
+//            sendMessage(new Gson().toJson(error), session);
+//            return;
+//        }
 
         // add user
         sessions.addSessionToGame(player.getGameID(), player.getAuthString(), session);
 
         // load game and send to client
-        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game(), player.getPlayerColor());
         sendMessage(new Gson().toJson(gameNotify), session);
 
         // send notification to all clients
@@ -100,7 +102,7 @@ public class WebSocketHandler {
         sessions.addSessionToGame(observer.getGameID(), observer.getAuthString(), session);
 
         // load game and send to client
-        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        LoadGame gameNotify = new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game(), null);
         sendMessage(new Gson().toJson(gameNotify), session);
 
         // send notification to all clients
@@ -111,11 +113,18 @@ public class WebSocketHandler {
     public void makeMove(Session session, String message) throws ResponseException, DataAccessException, SQLException, IOException, InvalidMoveException {
         MakeMove mover=new Gson().fromJson(message, MakeMove.class);
         GameData gameData = new SQLGameDAO().getGameByID(mover.getGameID());
+        boolean whitePlayer=false;
+        boolean blackPlayer=false;
+        boolean observer=false;
 
         // verify the validity of the move
-        boolean whitePlayer = (mover.getAuthString().equals(new SQLAuthDAO().getAuthByAuthToken(gameData.whiteUsername()).authToken()));
-        boolean blackPlayer = (mover.getAuthString().equals(new SQLAuthDAO().getAuthByAuthToken(gameData.blackUsername()).authToken()));
-        boolean observer = !whitePlayer && !blackPlayer;
+        if (mover.getAuthString().equals(authData.authToken()) && gameData.whiteUsername().equals(authData.username())) {
+            whitePlayer=true;
+        } else if (mover.getAuthString().equals(authData.authToken()) && gameData.blackUsername().equals(authData.username())) {
+            blackPlayer=true;
+        } else if (!whitePlayer && !blackPlayer) {
+            observer=true;
+        }
 
         if (observer) {
             Error error=new Error(ServerMessage.ServerMessageType.ERROR, "ERROR: observer cannot make moves");
@@ -139,7 +148,7 @@ public class WebSocketHandler {
         new SQLGameDAO().updateGame(gameData.game(), gameData.gameID());
 
         // send updated game to all clients
-        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
+        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game(), gameData.game().getTeamTurn());
         sendMessage(new Gson().toJson(gameNotify), session);
         broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
 

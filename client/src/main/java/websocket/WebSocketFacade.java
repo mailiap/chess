@@ -2,21 +2,16 @@ package websocket;
 
 import chess.ChessGame;
 import chess.ChessMove;
-import chess.ChessMove;
 import com.google.gson.Gson;
 import dataAccess.DataAccessException;
-import dataAccess.SQLAuthDAO;
 import exception.ResponseException;
 import ui.GameplayUI;
-import webSocketMessages.serverMessages.Error;
-import webSocketMessages.serverMessages.Notification;
 import webSocketMessages.serverMessages.ServerMessage;
 import webSocketMessages.userCommands.*;
 
 import javax.websocket.*;
 import java.io.IOException;
 import java.net.*;
-import java.util.Scanner;
 
 
 //client
@@ -73,7 +68,7 @@ public class WebSocketFacade extends Endpoint {
         try {
             JoinObserver observer = new JoinObserver(authToken, gameID);
             send(observer);
-            GameplayUI gamePlay = new GameplayUI(gameID, authToken, "NULL", this);
+            GameplayUI gamePlay = new GameplayUI(gameID, authToken, null, this);
             gamePlay.run();
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -2,6 +2,8 @@ package ui;
 
 import chess.ChessGame;
 import chess.ChessMove;
+import chess.ChessPiece;
+import chess.ChessPosition;
 import com.google.gson.Gson;
 import dataAccess.DataAccessException;
 import dataAccess.GameDAO;
@@ -30,6 +32,7 @@ public class GameplayUI {
     private int inputGameID=0;
     private String command="";
     private String authToken="";
+    private State state=State.NOTRESIGNED;
     private final Scanner scanner;
     private DrawGameBoard gameBoard;
     private WebSocketFacade wsFacade;
@@ -39,14 +42,6 @@ public class GameplayUI {
         this.gameBoard=new DrawGameBoard();
         this.inputGameID=inputGameID;
         this.authToken=authToken;
-        this.playerColor=playerColor;
-        this.wsFacade=wsFacade;
-    }
-
-    public GameplayUI() {
-        this.scanner=new Scanner(System.in);
-        this.gameBoard=new DrawGameBoard();
-        this.inputGameID=inputGameID;
         this.playerColor=playerColor;
         this.wsFacade=wsFacade;
     }
@@ -83,10 +78,6 @@ public class GameplayUI {
     }
 
     public void redraw() throws ResponseException, DataAccessException, SQLException {
-        var out=new PrintStream(System.out, true, StandardCharsets.UTF_8);
-
-        out.print(ERASE_SCREEN);
-
         // save game after getting the load game notification
         // pass in game
         GameData gameData=new SQLGameDAO().getGameByID(inputGameID);
@@ -95,47 +86,41 @@ public class GameplayUI {
             gameData.game().setTeamTurn(ChessGame.TeamColor.BLACK);
         }
 
-        gameBoard.drawChessboard(out, gameData.game());
-
-        if (playerColor.equals("WHITE")) {
-            System.out.println(SET_TEXT_COLOR_BLUE);
-            System.out.println(String.format("You are on the " + playerColor + " team"));
-
-        } else if (playerColor.equals("BLACK")) {
-            System.out.println(SET_TEXT_COLOR_RED);
-            System.out.println(String.format("You are on the " + playerColor + " team"));
-
-        } else if (playerColor.equals("NULL")) {
-            System.out.println(SET_TEXT_COLOR_YELLOW);
-            System.out.println(String.format("You are an observer."));
-        }
+        gameBoard.drawChessboard(gameData.game());
     }
 
     public void move(String... params) {
-//        if (params.length != 1) {
-//            int gameID=Integer.parseInt(params[1]);
-//            var postitions=params[2].split(" ");
-//
-//
-//
-//            if (inputGameID == gameID) {
-//                wsFacade.makeMoveFacde(authToken, gameID, move);
+        if (params.length == 3) {
+            int gameID=Integer.parseInt(params[1]);
+            String newMove=params[2];
+            String fromCol = newMove.substring(0, 1);
+            int fromRow = Integer.parseInt(newMove.substring(1, 2));
+            String toCol = newMove.substring(2, 3);
+            int toRow = Integer.parseInt(newMove.substring(3, 4));
 
-                System.out.print(SET_TEXT_COLOR_GREEN);
-                System.out.print("You resigned from the game.\n");
-//            } else {
-//                System.out.print("Error: Game ID does not match game joined\n");
-//            }
-//        } else {
-//            System.out.print("Error: Did not provide game ID\n");
-//        }
+
+            ChessPosition startPosition = moveConverter(fromCol, fromRow);
+            ChessPosition endPosition = moveConverter(toCol, toRow);
+            ChessMove move = new ChessMove(startPosition, endPosition);
+
+            if (inputGameID == gameID) {
+                wsFacade.makeMoveFacde(authToken, gameID, move);
+
+//                System.out.print(SET_TEXT_COLOR_GREEN);
+//                System.out.print("You resigned from the game.\n");
+            } else {
+                System.out.print("Error: Game ID does not match game joined\n");
+            }
+        } else {
+            System.out.print("Error: Did not provide game ID and/or move\n");
+        }
     }
 
     public void leave(String... params) throws ResponseException, DataAccessException, SQLException {
         if (params.length != 1) {
             int gameID=Integer.parseInt(params[1]);
             if (inputGameID == gameID) {
-                if (!playerColor.equals("NULL")) {
+                if (playerColor != null) {
                     new SQLGameDAO().updatePlayerColor(gameID, null, playerColor);
                 }
 //                    wsFacade=new WebSocketFacade(serverUrl, gameHandler);
@@ -158,15 +143,14 @@ public class GameplayUI {
             int gameID=Integer.parseInt(params[1]);
 
             if (inputGameID == gameID) {
-                System.out.println("Are you sure you want to resign? (Yes/No)");
-                System.out.print(">>> ");
+                System.out.println(SET_TEXT_COLOR_YELLOW + "Are you sure you want to resign? (Yes/No)");
+                System.out.print(RESET_TEXT_COLOR+ "[GAMEPLAY] >>> ");
                 Scanner scanner=new Scanner(System.in);
                 String input=scanner.nextLine().trim().toLowerCase();
                 if (input.equals("yes")) {
                     wsFacade.resignFacade(authToken, gameID);
-
-                    System.out.print(SET_TEXT_COLOR_GREEN);
-                    System.out.print("You resigned from the game.\n");
+                    state = State.RESIGNED;
+                    System.out.print(SET_TEXT_COLOR_GREEN + "You resigned from the game.\n");
                 }
             } else {
                 System.out.print("Error: Game ID does not match game joined\n");
@@ -179,5 +163,28 @@ public class GameplayUI {
     public String highlight() {
         System.out.print(SET_TEXT_COLOR_GREEN);
         return String.format("Highlighting...\n");
+    }
+
+//    public String moveCoverterToString(ChessMove move) {
+//        ChessPosition startPosition = move.getStartPosition();
+//        ChessPosition endPosition = move.getEndPosition();
+//        return moveConverter(startPosition.getColumn() + startPosition.getRow() + moveConverter(endPosition.getColumn()) + endPosition.getRow());
+//    }
+
+    public ChessPosition moveConverter(String rowToConvert, int col) {
+        int convertedCol=0;
+        switch (rowToConvert) {
+            case "a" -> convertedCol = 1;
+            case "b" -> convertedCol = 2;
+            case "c" -> convertedCol = 3;
+            case "d" -> convertedCol = 4;
+            case "e" -> convertedCol = 5;
+            case "f" -> convertedCol = 6;
+            case "g" -> convertedCol = 7;
+            case "h" -> convertedCol = 8;
+        }
+        return new ChessPosition(col, convertedCol);
+        // convert string into a int
+        // set new postion inside of new move using the converted col
     }
 }

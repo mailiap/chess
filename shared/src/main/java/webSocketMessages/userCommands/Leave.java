@@ -1,5 +1,7 @@
 package webSocketMessages.userCommands;
 
+import chess.ChessGame;
+
 public class Leave extends UserGameCommand {
 
     private int gameID;
@@ -13,4 +15,5 @@ public class Leave extends UserGameCommand {
     public int getGameID() {
         return gameID;
     }
+
 }
