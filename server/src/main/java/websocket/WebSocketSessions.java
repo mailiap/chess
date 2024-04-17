@@ -1,7 +1,6 @@
 package websocket;
 
 import org.eclipse.jetty.websocket.api.*;
-import org.glassfish.tyrus.core.cluster.SessionListener;
 import webSocketMessages.serverMessages.ServerMessage;
 
 import java.util.*;

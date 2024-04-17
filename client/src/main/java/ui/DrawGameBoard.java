@@ -22,12 +22,26 @@ public class DrawGameBoard {
 
     public static void main(String[] args) {
         // Example usage:
-        ChessBoard board=new ChessBoard();
-        board.resetBoard();
-        ChessGame chessGame=new ChessGame();
-        chessGame.setBoard(board);
-        chessGame.setTeamTurn(ChessGame.TeamColor.BLACK);
-        drawChessboard(chessGame);
+        ChessBoard observerBoard=new ChessBoard();
+        observerBoard.resetBoard();
+        ChessGame observerChessGame=new ChessGame();
+        observerChessGame.setBoard(observerBoard);
+        observerChessGame.setTeamTurn(null);
+        drawChessboard(observerChessGame);
+
+        ChessBoard blackBoard=new ChessBoard();
+        blackBoard.resetBoard();
+        ChessGame blackChessGame=new ChessGame();
+        blackChessGame.setBoard(blackBoard);
+        blackChessGame.setTeamTurn(ChessGame.TeamColor.BLACK);
+        drawChessboard(blackChessGame);
+
+        ChessBoard whiteBoard=new ChessBoard();
+        whiteBoard.resetBoard();
+        ChessGame whiteChessGame=new ChessGame();
+        whiteChessGame.setBoard(whiteBoard);
+        whiteChessGame.setTeamTurn(ChessGame.TeamColor.WHITE);
+        drawChessboard(whiteChessGame);
     }
 
     static void drawChessboard(ChessGame game) {
@@ -38,17 +52,17 @@ public class DrawGameBoard {
         // iterate through each piece on board and print it
 
         if (game.getTeamTurn() == null) {
-            drawBlackHeader(out);
-            drawBlackAtBottom(out, game);
-            drawBlackHeader(out);
-        } else if (game.getTeamTurn().equals(ChessGame.TeamColor.WHITE)) {
-            drawBlackHeader(out);
-            drawBlackAtBottom(out, game);
-            drawBlackHeader(out);
-        } else {
             drawWhiteHeader(out);
             drawWhiteAtBottom(out, game);
             drawWhiteHeader(out);
+        } else if (game.getTeamTurn().equals(ChessGame.TeamColor.WHITE)) {
+            drawWhiteHeader(out);
+            drawWhiteAtBottom(out, game);
+            drawWhiteHeader(out);
+        } else {
+            drawBlackHeader(out);
+            drawBlackAtBottom(out, game);
+            drawBlackHeader(out);
         }
 
         if (game.getTeamTurn() == null) {
@@ -136,7 +150,7 @@ public class DrawGameBoard {
         out.print(" " + column + " ");
     }
 
-    private static void drawBlackAtBottom(PrintStream out, ChessGame game) {
+    private static void drawWhiteAtBottom(PrintStream out, ChessGame game) {
         for (int boardRow=BOARD_SIZE_IN_SQUARES; boardRow > 0; boardRow--) {
             for (int squareRow=SQUARE_SIZE_IN_CHARS; squareRow > 0; squareRow--) {
                 for (int boardCol=BOARD_SIZE_IN_SQUARES; boardCol > 0; boardCol--) {
@@ -162,8 +176,8 @@ public class DrawGameBoard {
                         out.print(SET_TEXT_COLOR_BLACK);
 
                         if (boardCol == 8) {
-                            drawColumn(out, column);
-                            column++;
+                            drawColumn(out, reverseColumn);
+                            reverseColumn--;
                         }
 
                         int prefixLength=SQUARE_SIZE_IN_CHARS / 2;
@@ -191,7 +205,7 @@ public class DrawGameBoard {
                 }
 
                 if (squareRow == 2) {
-                    drawColumn(out, column - 1);
+                    drawColumn(out, reverseColumn + 1);
                 } else {
                     drawBorder(out);
                 }
@@ -201,7 +215,7 @@ public class DrawGameBoard {
         }
     }
 
-    private static void drawWhiteAtBottom(PrintStream out, ChessGame game) {
+    private static void drawBlackAtBottom(PrintStream out, ChessGame game) {
         for (int boardRow=0; boardRow < BOARD_SIZE_IN_SQUARES; boardRow++) {
             for (int squareRow=0; squareRow < SQUARE_SIZE_IN_CHARS; ++squareRow) {
                 for (int boardCol=0; boardCol < BOARD_SIZE_IN_SQUARES; ++boardCol) {
@@ -227,8 +241,8 @@ public class DrawGameBoard {
                         out.print(SET_TEXT_COLOR_BLACK);
 
                         if (boardCol == 0) {
-                            drawColumn(out, reverseColumn);
-                            reverseColumn--;
+                            drawColumn(out, column);
+                            column++;
                         }
 
                         int prefixLength=SQUARE_SIZE_IN_CHARS / 2;
@@ -256,7 +270,7 @@ public class DrawGameBoard {
                 }
 
                 if (squareRow == 1) {
-                    drawColumn(out, reverseColumn + 1);
+                    drawColumn(out, column - 1);
                 } else {
                     drawBorder(out);
                 }

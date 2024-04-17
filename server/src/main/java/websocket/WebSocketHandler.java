@@ -148,13 +148,13 @@ public class WebSocketHandler {
         new SQLGameDAO().updateGame(gameData.game(), gameData.gameID());
 
         // send updated game to all clients
-        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game(), gameData.game().getTeamTurn());
+        LoadGame gameNotify=new LoadGame(ServerMessage.ServerMessageType.LOAD_GAME, gameData.game());
         sendMessage(new Gson().toJson(gameNotify), session);
         broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
 
         // send notification to all clients
         Notification notification=new Notification(ServerMessage.ServerMessageType.NOTIFICATION, authData.username() + " made the move " + mover.getMove());
-        broadcastMessage(mover.getGameID(), new Gson().toJson(gameNotify), session);
+        broadcastMessage(mover.getGameID(), new Gson().toJson(notification), session);
     }
 
     public void leave(Session session, String message) throws IOException, ResponseException, DataAccessException, SQLException {
